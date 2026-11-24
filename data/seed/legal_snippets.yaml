@@ -1,0 +1,9 @@
+# Đoạn trích hiển thị ở nút "Xem căn cứ". Điền đoạn trích nguyên văn từ nguồn chính thức (CSDL quốc gia về VBPL) trước khi nộp.
+# Trường excerpt đang để trống có chủ đích: không tự viết lại nội dung điều luật.
+R1: {doc: "Bộ luật Dân sự 2015", article: "Điều 468", excerpt: "", source_url: ""}
+R2: {doc: "Bộ luật Hình sự 2015", article: "Điều 201", excerpt: "", source_url: ""}
+R3: {doc: "Bộ luật Dân sự 2015", article: "Điều 466", excerpt: "", source_url: ""}
+R6: {doc: "Luật Bảo vệ dữ liệu cá nhân 2025", article: "", excerpt: "", source_url: ""}
+R7: {doc: "Luật Đầu tư 2020", article: "Điều 6", excerpt: "", source_url: ""}
+T1: {doc: "Thông tư 39/2016/TT-NHNN", article: "", excerpt: "", source_url: ""}
+T2: {doc: "Thông tư 43/2016/TT-NHNN", article: "Điều 9", excerpt: "", source_url: ""}

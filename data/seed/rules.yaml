@@ -1,0 +1,62 @@
+# Biến dùng trong condition: facts do backend/antam/services/assess.py tạo ra, và p_<tên> từ legal_params.yaml.
+# Quy tắc thiếu dữ kiện sẽ được bỏ qua (không bật). Luôn viết "có dấu hiệu", không kết luận "vi phạm".
+- rule_id: R1
+  branch: non_credit_institution
+  condition: "apr_simple > p_cap_civil_pct"
+  severity: yellow
+  legal_ref: "BLDS 2015, Điều 468"
+  message_template: "Chi phí thật khoảng {apr_simple}%/năm, vượt mức trần {p_cap_civil_pct}%/năm của luật dân sự. Phần vượt quá không có hiệu lực."
+- rule_id: R2
+  branch: non_credit_institution
+  condition: "apr_simple >= p_cap_civil_pct * p_multiplier_criminal"
+  severity: red
+  legal_ref: "BLHS 2015, Điều 201"
+  message_template: "Chi phí thật khoảng {apr_simple}%/năm, từ 5 lần mức trần trở lên. Có dấu hiệu cho vay lãi nặng."
+- rule_id: R3
+  branch: non_credit_institution
+  condition: "late_penalty_apr_pct > p_cap_civil_pct * p_late_interest_multiplier"
+  severity: red
+  legal_ref: "BLDS 2015, Điều 466 và khoản 1 Điều 468"
+  message_template: "Phạt quá hạn tương đương khoảng {late_penalty_apr_pct}%/năm, vượt xa giới hạn luật cho phép."
+- rule_id: R4
+  branch: any
+  condition: "rate_stated_pct == 0 and total_cost > 0"
+  severity: red
+  legal_ref: "Phương pháp AnTâm: quy toàn bộ phí về lãi thực rồi đối chiếu R1, R2"
+  message_template: "Hợp đồng ghi lãi 0% nhưng bạn vẫn mất {total_cost} đồng tiền phí. Có dấu hiệu lãi trá hình."
+- rule_id: R5
+  branch: non_credit_institution
+  condition: "not license_found"
+  severity: yellow
+  legal_ref: "Danh sách tổ chức tín dụng được NHNN cấp phép"
+  message_template: "Không tìm thấy bên cho vay trong danh sách tổ chức được cấp phép cho vay."
+- rule_id: R6
+  branch: any
+  condition: "data_access_contacts"
+  severity: red
+  legal_ref: "Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15; Nghị định 356/2025/NĐ-CP"
+  message_template: "Điều khoản cho phép truy cập danh bạ hoặc liên hệ người thân. Rủi ro lạm dụng dữ liệu cá nhân để đòi nợ."
+- rule_id: R7
+  branch: any
+  condition: "third_party_collection"
+  severity: red
+  legal_ref: "Luật Đầu tư 2020, Điều 6 (cấm kinh doanh dịch vụ đòi nợ)"
+  message_template: "Có bên thứ ba đòi nợ hoặc đe doạ. Kinh doanh dịch vụ đòi nợ bị cấm."
+- rule_id: R8
+  branch: any
+  condition: "requires_upfront_payment"
+  severity: red
+  legal_ref: "Quy tắc cứng AnTâm"
+  message_template: "Bên cho vay đòi nộp tiền trước mới giải ngân. Đây là dấu hiệu lừa đảo, đừng chuyển thêm đồng nào."
+- rule_id: T1
+  branch: credit_institution
+  condition: "not has_rate_and_method"
+  severity: yellow
+  legal_ref: "Thông tư 39/2016/TT-NHNN"
+  message_template: "Hợp đồng chưa ghi rõ lãi suất hoặc phương pháp tính lãi. Hãy hỏi lại bên cho vay trước khi ký."
+- rule_id: T2
+  branch: credit_institution
+  condition: "apr_simple - rate_stated_pct > p_disclosure_gap_pct"
+  severity: yellow
+  legal_ref: "Thông tư 43/2016/TT-NHNN"
+  message_template: "Lãi quảng cáo {rate_stated_pct}%/năm nhưng chi phí thật khoảng {apr_simple}%/năm."

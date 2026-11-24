@@ -1,0 +1,28 @@
+# Tham số pháp lý dùng cho rule engine. KHÔNG sửa giá trị cũ khi luật đổi:
+# thêm dòng mới với effective_from mới và đóng effective_to của dòng cũ.
+# Mọi dòng phải có source_doc và last_verified. Kiểm tra lại văn bản đang có hiệu lực trước khi nộp bài.
+- name: cap_civil_pct
+  value: 20
+  effective_from: 2017-01-01
+  effective_to: null
+  source_doc: "Bộ luật Dân sự 2015, khoản 1 Điều 468"
+  last_verified: 2026-11-25
+- name: multiplier_criminal
+  value: 5
+  effective_from: 2018-01-01
+  effective_to: null
+  source_doc: "Bộ luật Hình sự 2015, Điều 201 (còn điều kiện về số tiền thu lợi bất chính)"
+  last_verified: 2026-11-25
+- name: late_interest_multiplier
+  value: 1.5
+  effective_from: 2017-01-01
+  effective_to: null
+  source_doc: "Bộ luật Dân sự 2015, điểm b khoản 5 Điều 466"
+  last_verified: 2026-11-25
+# Tham số chính sách sản phẩm (không phải luật) — ngưỡng chênh lệch lãi quảng cáo và lãi thực
+- name: disclosure_gap_pct
+  value: 5
+  effective_from: 2026-01-01
+  effective_to: null
+  source_doc: "Chính sách sản phẩm AnTâm (không phải quy định pháp luật)"
+  last_verified: 2026-11-25

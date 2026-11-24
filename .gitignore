@@ -1,0 +1,25 @@
+# Bí mật
+.env
+.env.*
+!.env.example
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+# Node
+node_modules/
+.next/
+*.tsbuildinfo
+# AWS SAM
+.aws-sam/
+samconfig.toml
+# Harness: dữ liệu tạm
+.claude/session-data/
+.claude/settings.local.json
+# Eval: ảnh hợp đồng thật không được commit (chỉ mẫu hư cấu)
+eval/results/
+backend/seed/
+backend/samples/

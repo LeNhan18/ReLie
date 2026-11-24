@@ -1,0 +1,18 @@
+{
+  "_note": "MẪU HƯ CẤU, chỉ dùng để kiểm thử và demo",
+  "lender_name": {"value": "Công ty TNHH Công nghệ Tài chính XanhCash", "confidence": 0.96},
+  "principal_stated": {"value": 4000000, "confidence": 0.98},
+  "amount_received": {"value": 3000000, "confidence": 0.91},
+  "disbursed_date": {"value": "2026-11-20", "confidence": 0.95},
+  "repayment_type": {"value": "one_time", "confidence": 0.9},
+  "schedule": [{"on": "2026-12-04", "amount": 4200000}],
+  "rate_stated_pct_year": {"value": 0, "confidence": 0.97},
+  "fees": [
+    {"name": "Phí thẩm định hồ sơ", "amount": 1000000, "deducted_upfront": true, "confidence": 0.93},
+    {"name": "Phí dịch vụ", "amount": 200000, "deducted_upfront": false, "confidence": 0.61}
+  ],
+  "extension_fee": {"value": 800000, "confidence": 0.9},
+  "late_penalty_pct_per_day": {"value": 5, "confidence": 0.88},
+  "data_access_contacts": true,
+  "requires_upfront_payment": false
+}

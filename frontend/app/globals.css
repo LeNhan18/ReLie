@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Giao diện cho người lớn tuổi: chữ tối thiểu 16px, nút lớn */
+html { font-size: 17px; }

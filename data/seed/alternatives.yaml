@@ -1,0 +1,33 @@
+# Phương án không cần vay, theo mục đích chi. Template thư dùng {ten_nguoi_dung}, {ten_nguoi_nhan}, {han_moi}.
+- alt_id: hoc_phi_xin_lui
+  purpose: hoc_phi
+  title: "Xin trường lùi hạn hoặc chia nhỏ học phí"
+  cost: 0
+  speed: "1-2 ngày"
+  template: |
+    Thưa {ten_nguoi_nhan}, em là phụ huynh của {ten_hoc_sinh}. Tháng này gia đình em đang gặp khó khăn,
+    em xin phép được đóng học phí đến ngày {han_moi}, hoặc chia làm 2 đợt. Em cảm ơn {ten_nguoi_nhan} nhiều.
+- alt_id: tien_nha_xin_lui
+  purpose: tien_nha
+  title: "Xin chủ nhà lùi hạn tiền nhà"
+  cost: 0
+  speed: "trong ngày"
+  template: |
+    Chào {ten_nguoi_nhan}, tháng này em bị chậm lương nên xin phép được đóng tiền nhà vào ngày {han_moi}.
+    Em sẽ đóng đúng hẹn. Em cảm ơn {ten_nguoi_nhan}.
+- alt_id: vien_phi_chia_nho
+  purpose: vien_phi
+  title: "Hỏi bệnh viện về trả viện phí nhiều lần hoặc hỗ trợ của phòng công tác xã hội"
+  cost: 0
+  speed: "1-3 ngày"
+  template: |
+    Kính gửi phòng công tác xã hội, gia đình em đang điều trị tại khoa {khoa}. Hiện gia đình em chưa đủ khả năng
+    thanh toán ngay toàn bộ viện phí, em xin hỏi bệnh viện có hình thức thanh toán nhiều lần hoặc hỗ trợ nào không ạ.
+- alt_id: ung_luong
+  purpose: any
+  title: "Xin ứng trước một phần lương"
+  cost: 0
+  speed: "1-2 ngày"
+  template: |
+    Chào {ten_nguoi_nhan}, em đang có việc gia đình cần gấp {so_tien}. Em xin phép được ứng trước phần lương
+    tháng này, trừ vào kỳ lương tới. Em cảm ơn {ten_nguoi_nhan}.

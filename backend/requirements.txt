@@ -1,0 +1,6 @@
+# Dùng cho `sam build` (Lambda). Giữ đồng bộ với [project].dependencies trong pyproject.toml.
+fastapi>=0.115
+mangum>=0.19
+pydantic>=2.8
+pyyaml>=6.0
+python-multipart>=0.0.9
