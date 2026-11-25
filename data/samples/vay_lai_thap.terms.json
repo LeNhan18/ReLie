@@ -1,0 +1,10 @@
+{
+  "_note": "MẪU HƯ CẤU",
+  "lender_name": {"value": "Ngân hàng Mẫu (MẪU HƯ CẤU)", "confidence": 1.0},
+  "principal_stated": {"value": 10000000, "confidence": 1.0},
+  "amount_received": {"value": 10000000, "confidence": 1.0},
+  "disbursed_date": {"value": "2026-11-20", "confidence": 1.0},
+  "repayment_type": {"value": "one_time", "confidence": 1.0},
+  "schedule": [{"on": "2027-11-20", "amount": 10400000}],
+  "rate_stated_pct_year": {"value": 4, "confidence": 1.0}
+}
