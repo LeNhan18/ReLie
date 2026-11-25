@@ -1,24 +1,23 @@
-# Đề bài cho Antigravity swarm — frontend (worktree `ReLie-agy`, nhánh `feat/frontend-agy`)
+# Đề bài cho Antigravity — vòng 2 (thư mục `E:\ReLie\agents\agy`, nhánh `feat/frontend-agy`)
 
-Đọc trước: `AGENTS.md`, `CLAUDE.md`, `docs/api-contract.md`, `.claude/rules/frontend.md`.
-Chỉ sửa: `frontend/**`. Không đụng `backend/`, `data/`, `infra/`, `.claude/`.
+Bước 0: `git pull origin main`. **Chỉ mở và làm việc trong thư mục `E:\ReLie\agents\agy`** — không mở `E:\ReLie`.
+Đọc: `AGENTS.md`, `docs/api-contract.md` (phần v1.1), `.claude/rules/frontend.md`.
+Chỉ sửa: `frontend/**`. Mỗi sub-agent commit riêng, push lên `origin feat/frontend-agy` sau mỗi phần.
 
-## Chạy
-- Backend để thử: trong worktree của bạn, `cd backend && pip install -e ".[dev]" && uvicorn antam.main:app --port 8000` (chỉ chạy, không sửa). `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:8000`.
-- `/aftercare/assess` chưa có ở backend: dùng mock JSON đúng ví dụ trong `docs/api-contract.md`, đặt ở `frontend/mocks/aftercare.json`, bật bằng `NEXT_PUBLIC_USE_MOCKS=1`. Khi backend xong sẽ tắt mock.
+Backend để thử: `cd backend && pip install -e ".[dev]" && uvicorn antam.main:app --port 8000` (chỉ chạy, không sửa). Các trường v1.1 có thể chưa có khi bạn bắt đầu — viết code chịu được trường thiếu (`state`, `suggested_flow` tuỳ chọn).
 
-## Chia việc cho swarm (mỗi sub-agent một thư mục, không sửa chéo)
+## Việc
 | Sub-agent | Thư mục | Việc |
 |---|---|---|
-| A — Cần tiền gấp | `frontend/app/need/**` | 4 câu hỏi dạng nút (mục đích, số tiền, hạn, có lương/tài sản/nợ xấu), danh sách lựa chọn với nhãn phù hợp, nút "Soạn thư" gọi `/messages/draft` → màn hình thư có nút Sao chép |
-| B — Kiểm tra khoản vay | `frontend/app/loan/**` | Chọn ảnh → resize ≤1600px phía client → `/loan/extract`; nút thử 3 mẫu (`xanhcash`, `gop_ngay`, `cty_tai_chinh_a`); form xác nhận (ô trong `low_confidence_fields` tô vàng); `/loan/assess` → màn hình kết quả (màu theo `risk_level`, danh sách `findings` kèm `legal_ref`, kịch bản gia hạn) |
-| C — Đã lỡ vay | `frontend/app/aftercare/**` | Dùng lại form xác nhận của B (import, không copy), gọi `/aftercare/assess`, hiện 3 con số tách nợ + checklist có ô tick |
-| D — Nền tảng | `frontend/components/**`, `frontend/lib/**` | Component dùng chung (RiskCard, ConfirmForm, OptionCard, Checklist, LoadingState, ErrorState); bổ sung kiểu `LoanTerms`, `ConfirmedLoan`, `AftercareResult` vào `lib/api.ts` khớp `backend/antam/schemas/`; tạo `anon_id` |
+| **A — Cần tiền gấp (ưu tiên số 1, hạn 26/11)** | `app/need/**` | 4 bước, mỗi màn hình một câu: (1) mục đích, (2) số tiền (3 khoảng), (3) hạn (hôm nay / trong 3 ngày / trong 1 tuần / chưa gấp → gửi `deadline`), (4) có lương chuyển khoản? có tài sản (xe, vàng)? có nợ xấu? (Có/Không/Không biết). Ô tuỳ chọn "Kể thêm hoàn cảnh" → `free_text`. Màn kết quả: `OptionCard` cho từng lựa chọn; `no_loan` có nút "Soạn thư" → `DraftScreen` (đã có) gọi `/messages/draft` + nút Sao chép; `harm_reduction` mở checklist vay ít hại nhất (nội dung tĩnh từ `docs/AnTam_tong_quan.md` mục 5.1); nếu `suggested_flow` có giá trị → banner "Có vẻ bạn đã vay / đang bị đòi nợ" dẫn sang `/aftercare` hoặc `/harassment`. Có nút Quay lại ở mỗi bước. |
+| **C — Đã lỡ vay** | `app/aftercare/**` | Tắt mock, gọi `/aftercare/assess` thật; thêm nút "Báo trước cho người thân" → mẫu `bao_truoc_nguoi_than` |
+| **E — Bị đòi nợ (mới)** | `app/harassment/**` | Checklist an toàn (không chuyển thêm tiền theo yêu cầu đe doạ, chụp lưu bằng chứng, chặn số, báo người thân, trình báo công an); gọi `GET /messages/templates?context=harassment` dựng form điền → `/messages/draft` → màn hình đơn có nút Sao chép và In (window.print, CSS in gọn). Không gửi dữ liệu đi đâu khác. |
+| **D — Nền tảng** | `components/**`, `lib/**` | Cập nhật kiểu `NeedProfile.free_text`, `NeedOptions.state/suggested_flow`, `Option.kind` thêm `harm_reduction`, `TemplateInfo`; hàm `api.templates(context)`; xoá cờ mock aftercare. Làm trước A, C, E. |
 
-Thứ tự: D làm `lib/api.ts` + component trước (A, B, C import từ đó). Chỉ D được sửa `components/` và `lib/`; A/B/C cần thêm thì nhờ D.
+B (kiểm tra khoản vay) đã xong — chỉ sửa nếu D đổi kiểu làm hỏng.
 
 ## UX bắt buộc
-Mobile-first (375px), nút cao ≥48px, chữ ≥16px, tiếng Việt đời thường, mỗi màn hình một việc; có trạng thái đang tải / lỗi mạng / ảnh không đọc được / kết quả rỗng. Không tự tính số tiền. Không `console.log`, không `dangerouslySetInnerHTML`.
+Mobile-first 375px, nút ≥48px, chữ ≥16px, mỗi màn hình một việc, có trạng thái tải / lỗi / rỗng. Không tự tính tiền, không `console.log`, không `dangerouslySetInnerHTML`, localStorage chỉ `anon_id`. Dữ liệu trong form đơn trình báo chỉ giữ trong state của trang.
 
-## Định nghĩa xong
-`cd frontend && npx tsc --noEmit && npm run build` sạch; mỗi sub-agent commit riêng trên `feat/frontend-agy`.
+## Xong khi
+`cd frontend && npx tsc --noEmit && npm run build` sạch, đã push.

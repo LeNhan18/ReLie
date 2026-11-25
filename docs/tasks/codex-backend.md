@@ -1,17 +1,16 @@
-# Đề bài cho Codex — backend (worktree `ReLie-codex`, nhánh `feat/backend-codex`)
+# Đề bài cho Codex — vòng 2 (thư mục `E:\ReLie\agents\codex`, nhánh `feat/backend-codex`)
 
-Đọc trước: `AGENTS.md`, `CLAUDE.md`, `docs/api-contract.md`, `.claude/rules/backend-tools.md`, `.claude/rules/ai-layer.md`.
-Chỉ sửa: `backend/**`, `data/seed/**`, `data/samples/**`, `eval/**`. Không đụng `frontend/`, `infra/`, `.claude/`.
+Bước 0: `git pull origin main` (lấy hợp đồng v1.1 và code mới nhất). Chỉ mở và làm việc trong thư mục này.
+Đọc: `AGENTS.md`, `docs/api-contract.md` (phần v1.1), `.claude/rules/backend-tools.md`, `.claude/rules/seed-data.md`.
+Chỉ sửa: `backend/**`, `data/seed/**`, `data/samples/**`, `eval/**`.
 
-## Việc theo thứ tự ưu tiên (xong việc nào commit việc đó)
-1. **Tool tách nợ** `backend/antam/tools/debt_split.py`: hàm `split_debt(received, total_demanded, disbursed, last_due, cap_pct, applies)` → (lawful_interest, excess_charge). Lãi đơn `received × cap% × ngày/365`, làm tròn về int. Test trong `backend/tests/tools/test_debt_split.py`: ca XanhCash (23014 / 1176986), ca tổng đòi thấp hơn lãi hợp pháp (excess = 0, không âm), ca tổ chức tín dụng (`applies=False`), ca ngày không hợp lệ.
-2. **Endpoint** `POST /aftercare/assess` đúng shape trong `docs/api-contract.md`: router `backend/antam/routers/aftercare.py`, schema `AftercareResult` trong `backend/antam/schemas/loan.py`, đọc `cap_civil_pct` từ `legal_params` theo ngày giải ngân (dùng `rule_engine.params_at`), dùng `check_license` để quyết `excess_applies`. Test API trong `backend/tests/api/`.
-3. **Thêm mẫu hư cấu** vào `data/samples/`: `gop_ngay.terms.json` (nhận 9.000.000, góp 250.000/ngày × 50 ngày) và `cty_tai_chinh_a.terms.json` (khoản vay hợp pháp 10.000.000, 12 kỳ lãi phẳng 1%/tháng). Ghi `"_note": "MẪU HƯ CẤU"`. Thêm test `/loan/extract` với `sample_id` cho cả hai.
-4. **Phân loại trạng thái người dùng** `backend/antam/services/state.py`: rule từ khoá tiếng Việt (không gọi LLM) → một trong `chua_biet | do_du | quyet_tam_vay | da_vay | bi_doi_no`. Test 15 câu mẫu. Chưa cần endpoint.
+## Việc (theo thứ tự, mỗi việc một commit, push lên `origin feat/backend-codex` sau mỗi việc)
+1. **`/need/options` v1.1:** thêm `free_text` vào `NeedProfile`, `state` + `suggested_flow` vào `NeedOptions`, mục `harm_reduction` khi `quyet_tam_vay`. Dùng `classify_state`. Test: mỗi trạng thái → đúng `suggested_flow`; không có `free_text` → `chua_biet`; request cũ (không có `free_text`) vẫn chạy.
+2. **Mẫu tin nhắn:** tạo `data/seed/message_templates.yaml` với 3 mẫu trong hợp đồng (giọng lịch sự, ngắn; đơn trình báo theo bố cục đơn trình báo thông thường: kính gửi cơ quan công an nơi cư trú, thông tin người trình báo, nội dung sự việc, đề nghị, ký tên — KHÔNG trích điều luật cụ thể). `/messages/draft` tìm trong cả `alternatives.yaml` và file mới. Thêm `GET /messages/templates?context=...` (trường `context` khai báo trong YAML). Test cho cả 3 mẫu và mẫu không tồn tại → 404.
+3. **Kiểm tra đầu vào `/loan/extract`:** chỉ nhận `image/jpeg`, `image/png`, `image/webp` (415 nếu khác); `text` ≤ 5000 ký tự (413); `sample_id` chỉ chấp nhận tên có trong `data/samples/` (404, chặn `../`). Test cho từng ca.
 
 ## Không làm
-- Không nối Bedrock thật, không thêm AWS credentials, không sửa `infra/`.
-- Không đổi shape các endpoint đã có. Cần đổi → ghi vào `docs/tasks/codex-questions.md`.
+Không nối Bedrock thật, không sửa `infra/`, `frontend/`, `docs/`, `.claude/`. Không tự điền `lenders.csv` / `loan_channels.csv` (cần nguồn chính thức — việc của Lê). Cần đổi hợp đồng → ghi `docs/tasks/codex-questions.md` và dừng phần đó.
 
-## Định nghĩa xong
-`cd backend && python -m pytest -q && ruff check .` sạch; mỗi việc một commit trên `feat/backend-codex`.
+## Xong khi
+`cd backend && python -m pytest -q && ruff check .` sạch, đã push.
