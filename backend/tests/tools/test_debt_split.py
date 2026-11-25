@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from antam.tools.debt_split import split_debt
+from antam.tools.debt_split import split_debt, summarize_debt
 
 DISBURSED = date(2026, 11, 20)
 DUE = date(2026, 12, 4)
@@ -19,6 +19,7 @@ def test_low_demand(demanded, expected):
 
 def test_credit_institution():
     assert split_debt(3_000_000, 4_200_000, DISBURSED, DUE, 20, False) == (1200000, 0)
+    assert split_debt(3_000_000, 2_000_000, DISBURSED, DUE, 20, False) == (-1000000, 0)
 
 
 def test_exact_ceiling_and_half_up_rounding():
@@ -40,3 +41,15 @@ def test_invalid_dates(due, applies):
 def test_invalid_amounts_and_cap(received, demanded, cap):
     with pytest.raises(ValueError):
         split_debt(received, demanded, DISBURSED, DUE, cap, True)
+
+
+def test_summarize_unsorted_schedule():
+    assert summarize_debt(3_000_000, [(DUE, 2_200_000), (date(2026, 11, 27), 2_000_000)],
+                          DISBURSED, 20, True) == (4200000, 23014, 1176986)
+
+
+@pytest.mark.parametrize("schedule", [[], [(DUE, 0)], [(DUE, -1)], [(DISBURSED, 100)],
+                                      [(date(2026, 11, 19), 100), (DUE, 100)]])
+def test_summarize_rejects_invalid_schedule(schedule):
+    with pytest.raises(ValueError):
+        summarize_debt(100, schedule, DISBURSED, 20, True)

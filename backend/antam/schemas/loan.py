@@ -83,3 +83,19 @@ class Assessment(BaseModel):
     scenarios: dict[str, int] = {}
     findings: list[Finding]
     explanation: str
+
+
+class ChecklistItem(BaseModel):
+    id: str
+    text: str
+
+
+class AftercareResult(BaseModel):
+    lender_status: str
+    principal_received: int
+    lawful_interest: int
+    excess_charge: int
+    total_demanded: int
+    excess_applies: bool
+    checklist: list[ChecklistItem]
+    note: str
