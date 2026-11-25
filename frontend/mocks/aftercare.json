@@ -1,0 +1,15 @@
+{
+  "lender_status": "not_found",
+  "principal_received": 3000000,
+  "lawful_interest": 23014,
+  "excess_charge": 1176986,
+  "total_demanded": 4200000,
+  "excess_applies": true,
+  "checklist": [
+    {"id": "luu_bang_chung", "text": "Chụp lưu hợp đồng, lịch trả nợ, tin nhắn báo tiền về"},
+    {"id": "tat_quyen", "text": "Tắt quyền Danh bạ, Ảnh, Tin nhắn của app"},
+    {"id": "bao_nguoi_than", "text": "Báo trước cho người thân nếu có số lạ gọi đòi nợ"},
+    {"id": "khong_vay_chong", "text": "Không vay app khác để trả app này"}
+  ],
+  "note": "Ước tính theo mức trần lãi suất của luật dân sự tại ngày giải ngân. Không phải tư vấn pháp lý."
+}
