@@ -26,9 +26,14 @@ def options_for(p: NeedProfile) -> NeedOptions:
     s = seed()
     out: list[Option] = []
     for a in s["alternatives"]:
-        if a["purpose"] in (p.purpose, "any"):
-            out.append(Option(kind="no_loan", option_id=a["alt_id"], title=a["title"],
-                              cost_note="0đ", speed=a["speed"], fit="cao"))
+        if a["purpose"] not in (p.purpose, "any"):
+            continue
+        needs_salary = a.get("needs_salary", False)
+        if needs_salary and p.has_salary is False:
+            continue
+        out.append(Option(kind="no_loan", option_id=a["alt_id"], title=a["title"],
+                          cost_note=a.get("cost_note", "0đ"), speed=a["speed"],
+                          fit="co_the" if needs_salary and p.has_salary is None else "cao"))
     ranked = []
     for ch in s["loan_channels"]:
         fit = _fit(ch, p)

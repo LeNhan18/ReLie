@@ -1,4 +1,4 @@
-# Phương án không cần vay, theo mục đích chi. Template thư dùng {ten_nguoi_dung}, {ten_nguoi_nhan}, {han_moi}.
+# Phương án không cần vay, theo mục đích chi. Mẫu mới dùng các trường mặc định của form thư.
 - alt_id: hoc_phi_xin_lui
   purpose: hoc_phi
   title: "Xin trường lùi hạn hoặc chia nhỏ học phí"
@@ -25,9 +25,60 @@
     thanh toán ngay toàn bộ viện phí, em xin hỏi bệnh viện có hình thức thanh toán nhiều lần hoặc hỗ trợ nào không ạ.
 - alt_id: ung_luong
   purpose: any
+  needs_salary: true
   title: "Xin ứng trước một phần lương"
   cost: 0
   speed: "1-2 ngày"
   template: |
     Chào {ten_nguoi_nhan}, em đang có việc gia đình cần gấp {so_tien}. Em xin phép được ứng trước phần lương
     tháng này, trừ vào kỳ lương tới. Em cảm ơn {ten_nguoi_nhan}.
+- alt_id: hoc_phi_hoi_ho_tro
+  purpose: hoc_phi
+  title: "Hỏi trường về hỗ trợ học phí khi gia đình gặp khó khăn"
+  cost: 0
+  speed: "Tùy thời gian trường phản hồi"
+  template: |
+    Kính gửi {ten_nguoi_nhan}, gia đình em đang gặp khó khăn về học phí. Em xin hỏi trường hiện có hình thức
+    hỗ trợ nào phù hợp và cần chuẩn bị những giấy tờ gì. Nếu được, mong có hướng dẫn trước ngày {han_moi}.
+- alt_id: tien_nha_chia_nho
+  purpose: tien_nha
+  title: "Thỏa thuận với chủ nhà để đóng tiền thành nhiều đợt"
+  cost: 0
+  speed: "Tùy thỏa thuận với chủ nhà"
+  template: |
+    Chào {ten_nguoi_nhan}, tháng này em khó thu xếp đủ tiền nhà cùng lúc. Em xin hỏi mình có thể thống nhất
+    đóng trước phần em đang có và đóng phần còn lại vào ngày {han_moi} không ạ?
+- alt_id: vien_phi_hoi_bao_hiem
+  purpose: vien_phi
+  title: "Nhờ bộ phận viện phí kiểm tra phần có thể được bảo hiểm chi trả"
+  cost: 0
+  speed: "Tùy thời gian bộ phận viện phí phản hồi"
+  template: |
+    Kính gửi {ten_nguoi_nhan}, em xin nhờ kiểm tra các khoản viện phí có thể được bảo hiểm chi trả và giấy tờ
+    cần bổ sung. Nếu được, xin hướng dẫn trước ngày {han_moi} để gia đình em kịp chuẩn bị.
+- alt_id: tra_no_cu_hoi_lich_tra
+  purpose: tra_no_cu
+  title: "Trao đổi với bên cho vay về lịch trả phù hợp khả năng"
+  cost: 0
+  cost_note: "Hỏi rõ chi phí trước khi đồng ý đổi lịch trả"
+  speed: "Tùy thời gian bên cho vay phản hồi"
+  template: |
+    Kính gửi {ten_nguoi_nhan}, em đang gặp khó khăn với kỳ trả nợ sắp tới. Em muốn trao đổi về lịch trả
+    phù hợp với khả năng hiện tại. Mong anh/chị cho biết các lựa chọn và khoản phí nếu có bằng văn bản
+    trước ngày {han_moi}, để em cân nhắc trước khi xác nhận.
+- alt_id: ho_tro_khan_cap_dia_phuong
+  purpose: any
+  title: "Hỏi địa phương về hỗ trợ cho trường hợp khó khăn đột xuất"
+  cost: 0
+  speed: "Tùy chương trình và điều kiện hỗ trợ"
+  template: |
+    Kính gửi {ten_nguoi_nhan}, gia đình em đang gặp khó khăn đột xuất. Em xin hỏi địa phương có chương trình
+    hỗ trợ nào phù hợp và hồ sơ cần chuẩn bị. Nếu được, mong có hướng dẫn trước ngày {han_moi}.
+- alt_id: nho_nguoi_than_ho_tro
+  purpose: any
+  title: "Nhờ người thân hỗ trợ một phần chi phí thiết yếu"
+  cost: 0
+  speed: "Tùy khả năng của người thân"
+  template: |
+    Chào {ten_nguoi_nhan}, em đang khó thu xếp một khoản chi thiết yếu. Nếu thuận tiện, mình có thể nói chuyện
+    trước ngày {han_moi} để xem có cách nào giúp em giảm bớt khoản chi này không? Em cảm ơn.
