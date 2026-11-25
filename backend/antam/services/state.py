@@ -10,15 +10,18 @@ UserState = Literal["chua_biet", "do_du", "quyet_tam_vay", "da_vay", "bi_doi_no"
 _RULES: tuple[tuple[UserState, tuple[str, ...]], ...] = (
     ("bi_doi_no", ("đòi nợ", "đòi tiền nợ", "đe dọa", "khủng bố", "ép trả nợ", "gọi người thân đòi tiền")),
     ("da_vay", ("đã vay", "vay rồi", "đang vay", "đã nhận tiền vay", "đã giải ngân", "đang trả góp",
-                "đang trả nợ", "đã ký hợp đồng vay")),
+                "đang trả nợ", "đã ký hợp đồng vay", "tiền vay đã về", "đã về tài khoản")),
     ("quyet_tam_vay", ("quyết tâm vay", "quyết định vay", "nhất định vay", "sẽ vay", "vẫn vay", "chốt vay")),
-    ("do_du", ("do dự", "phân vân", "cân nhắc", "lưỡng lự", "có nên vay", "chưa chắc", "không chắc", "sợ lãi")),
+    ("do_du", ("do dự", "phân vân", "cân nhắc", "lưỡng lự", "có nên vay", "chưa chắc", "không chắc", "sợ lãi",
+               "ngại phí cao", "lo không đủ tiền trả")),
 )
 
 _NEGATED_PREFIX = re.compile(
     r"\b(?:khong|chua|chua tung|khong he|chua chac|khong chac|so|lo|neu|gia su)(?: (?:bi|se|minh|toi|phai))* $"
 )
 _HYPOTHETICAL_PREFIX = re.compile(r"\b(?:neu|gia su)\b")
+_REPORTED_PREFIX = re.compile(r"\b(?:nghe ke|nghe noi)\b")
+_LOAN_CONTEXT = re.compile(r"\b(?:vay|giai ngan|tra no|tra gop)\b")
 
 
 def _normalize(text: str) -> str:
@@ -38,8 +41,11 @@ def classify_state(text: str) -> UserState:
         for keyword in keywords:
             pattern = rf"\b{re.escape(_normalize(keyword))}\b"
             for clause in clauses:
+                if keyword == "đã về tài khoản" and not _LOAN_CONTEXT.search(clause):
+                    continue
                 for match in re.finditer(pattern, clause):
                     prefix = clause[:match.start()]
-                    if not _NEGATED_PREFIX.search(prefix) and not _HYPOTHETICAL_PREFIX.search(prefix):
+                    if not any(rule.search(prefix) for rule in
+                               (_NEGATED_PREFIX, _HYPOTHETICAL_PREFIX, _REPORTED_PREFIX)):
                         return state
     return "chua_biet"

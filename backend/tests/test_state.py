@@ -42,6 +42,10 @@ def test_fifteen_sample_sentences(text, expected):
     ("Tôi đang trả nợ, chưa bị đòi nợ.", "da_vay"),
     ("Tôi chưa chắc sẽ vay.", "do_du"),
     ("Tôi không chắc mình sẽ vay.", "do_du"),
+    ("Tôi nghe nói có người bị đòi nợ.", "chua_biet"),
+    ("Tiền hoàn hàng đã về tài khoản.", "chua_biet"),
+    ("Khoản vay mới đã về tài khoản sáng nay.", "da_vay"),
+    ("Tôi muốn vay mà ngại phí cao.", "do_du"),
 ])
 def test_normalization_priority_and_negation(text, expected):
     assert classify_state(text) == expected
