@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import re
 
 from pydantic import ValidationError
 
@@ -11,11 +11,25 @@ from antam.config import settings
 from antam.schemas.loan import LoanTerms
 
 
+class InvalidSampleId(ValueError):
+    pass
+
+
+class SampleNotFound(ValueError):
+    pass
+
+
 def extract_terms(image_bytes: bytes | None = None, text: str | None = None, sample_id: str | None = None) -> LoanTerms:
     if settings.ai_mode == "mock" or sample_id:
         sid = sample_id or "xanhcash"
+        if not re.fullmatch(r"[a-z0-9_-]{1,64}", sid):
+            raise InvalidSampleId("Mã mẫu không hợp lệ")
         path = settings.samples_dir / f"{sid}.terms.json"
-        return LoanTerms.model_validate(json.loads(path.read_text(encoding="utf-8")))
+        try:
+            sample = path.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise SampleNotFound("Không tìm thấy mẫu khoản vay") from exc
+        return LoanTerms.model_validate_json(sample)
 
     system = load_prompt("extract_loan_terms")
     user_text = text or "Trích xuất điều khoản từ ảnh hợp đồng/màn hình app vay đính kèm."

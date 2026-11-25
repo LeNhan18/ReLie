@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from antam.ai.extract import extract_terms
+from antam.ai.extract import InvalidSampleId, SampleNotFound, extract_terms
 from antam.schemas.loan import Assessment, ConfirmedLoan
 from antam.services.assess import assess
 from antam.tools.calc_true_cost import CashFlowError
@@ -14,10 +14,23 @@ MAX_IMAGE_BYTES = 4_000_000  # ảnh đã resize phía client; xử lý trong b�
 @router.post("/extract")
 async def extract(file: UploadFile | None = File(None), text: str | None = Form(None),
                   sample_id: str | None = Form(None)) -> dict:
-    image = await file.read() if file else None
-    if image and len(image) > MAX_IMAGE_BYTES:
-        raise HTTPException(413, "Ảnh quá lớn, vui lòng chụp lại hoặc giảm kích thước")
-    terms = extract_terms(image_bytes=image, text=text, sample_id=sample_id)
+    if sum((file is not None, bool(text and text.strip()), bool(sample_id))) != 1:
+        raise HTTPException(422, "Vui lòng gửi đúng một ảnh, nội dung hoặc mã mẫu khoản vay")
+    image = None
+    if file is not None:
+        image = await file.read(MAX_IMAGE_BYTES + 1)
+        if not image:
+            raise HTTPException(422, "Ảnh không có nội dung, vui lòng chọn ảnh khác")
+        if len(image) > MAX_IMAGE_BYTES:
+            raise HTTPException(413, "Ảnh quá lớn, vui lòng chụp lại hoặc giảm kích thước")
+    try:
+        terms = extract_terms(image_bytes=image, text=text, sample_id=sample_id)
+    except InvalidSampleId as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except SampleNotFound as exc:
+        if sample_id is None:
+            raise
+        raise HTTPException(404, str(exc)) from exc
     return {"terms": terms.model_dump(mode="json"), "low_confidence_fields": terms.low_confidence_fields()}
 
 
