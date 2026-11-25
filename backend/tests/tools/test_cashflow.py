@@ -27,3 +27,14 @@ def test_no_shortfall():
 def test_payday_must_be_future():
     with pytest.raises(ValueError):
         forecast(T, 1, T, 0, [], [])
+
+
+@pytest.mark.parametrize("overrides", [
+    {"cash_on_hand": -1}, {"avg_daily_spend": -1}, {"buffer": -1},
+    {"debts": [Debt("A", T, -1)]}, {"fixed": [FixedExpense("A", T, -1)]},
+])
+def test_negative_inputs_do_not_inflate_forecast(overrides):
+    params = {"today": T, "next_payday": date(2026, 12, 5), "cash_on_hand": 0,
+              "avg_daily_spend": 0, "debts": [], "fixed": []}
+    with pytest.raises(ValueError, match="không được âm"):
+        forecast(**(params | overrides))
