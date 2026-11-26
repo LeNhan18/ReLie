@@ -827,78 +827,30 @@ export default function LoanPage() {
                       onClick={() => {
                         void handleSampleSelect(sample.id);
                       }}
-                      className="group flex min-h-[64px] w-full items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-left transition hover:border-teal-500 hover:bg-teal-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-100/60"
+                      className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-left transition hover:border-teal-500 hover:bg-teal-50/50 active:bg-teal-100/60"
                     >
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <span
-                          className={`inline-block rounded-lg border px-2.5 py-0.5 text-base font-semibold ${sample.tagClass}`}
-                        >
-                          {sample.tag}
-                        </span>
-                        <div className="text-base font-bold leading-snug text-slate-900 group-hover:text-teal-950">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-slate-900">
                           {sample.title}
                         </div>
-                        <p className="text-base leading-relaxed text-slate-600">
-                          {sample.description}
-                        </p>
                       </div>
-
                       <span
-                        aria-hidden="true"
-                        className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-teal-800 ring-1 ring-slate-200 transition group-hover:bg-teal-700 group-hover:text-white group-hover:ring-teal-700"
+                        className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${sample.tagClass}`}
                       >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth={2.2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                        >
-                          <path d="m9 18 6-6-6-6" />
-                        </svg>
+                        {sample.tag}
                       </span>
                     </button>
                   ))}
                 </div>
               </section>
 
-              {/* Tự nhập số liệu khi nghe tư vấn miệng / vay cá nhân */}
-              <section
-                aria-labelledby="manual-entry-heading"
-                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+              <button
+                type="button"
+                onClick={startManualEntry}
+                className="min-h-[48px] w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
               >
-                <h2 id="manual-entry-heading" className="text-lg font-bold text-slate-900">
-                  Chưa có giấy tờ hay ảnh chụp?
-                </h2>
-                <p className="text-base leading-relaxed text-slate-600">
-                  Dùng khi bạn mới nghe người tư vấn báo miệng, vay cá nhân hoặc vay họ/góp bên ngoài.{" "}
-                  <strong className="font-semibold text-rose-900">
-                    Cảnh giác: nếu bên cho vay đòi nộp phí hồ sơ, bảo hiểm hay tiền cọc trước mới giải ngân thì đó là dấu hiệu lừa đảo.
-                  </strong>
-                </p>
-                <button
-                  type="button"
-                  onClick={startManualEntry}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl border-2 border-teal-700 bg-white px-4 py-3 text-center text-base font-semibold text-teal-900 shadow-sm transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-100"
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 shrink-0 text-teal-800"
-                  >
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                  <span>Tự nhập số liệu (khi chỉ nghe tư vấn miệng)</span>
-                </button>
-              </section>
+                Chưa có giấy tờ? Tự nhập số liệu thủ công →
+              </button>
 
               {/* Soi các quyền nguy hiểm mà app vay hay đòi */}
               <PermissionGuide />

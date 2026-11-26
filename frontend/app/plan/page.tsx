@@ -497,92 +497,42 @@ export default function PlanPage() {
     <div ref={formTopRef} className="space-y-6 pb-6">
       <PageHeader
         backHref="/"
-        badge="Dự báo dòng tiền an toàn"
-        title="Kế hoạch tiền & nợ"
-        subtitle="Biết rõ hôm nay bạn được tiêu tối đa bao nhiêu để trụ vững tới ngày nhận lương và thấy sớm khoản nợ có nguy cơ hụt tiền."
+        title="Hôm nay tiêu gì"
+        subtitle="Nhập tiền hiện có & ngày lương để biết mức tiêu an toàn."
       />
 
-      {/* Khối điền nhanh tình huống mẫu */}
-      <section
-        aria-labelledby="sample-preset-heading"
-        className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50/90 via-white to-amber-50/50 p-4 shadow-sm"
-      >
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white shadow-sm"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </span>
+      {/* Thanh điền nhanh gọn 1 dòng */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleFillSample}
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-50 px-3.5 py-2 text-sm font-semibold text-teal-800 ring-1 ring-inset ring-teal-200 transition hover:bg-teal-100 disabled:opacity-60"
+        >
+          <span>Thử ví dụ chị Hoa</span>
+        </button>
 
-          <div className="min-w-0 flex-1">
-            <h2
-              id="sample-preset-heading"
-              className="text-base font-bold leading-snug text-slate-900"
-            >
-              Muốn xem thử cách tính ngay?
-            </h2>
-            <p className="mt-1 text-base leading-relaxed text-slate-600">
-              Bấm nút dưới đây để điền sẵn tình huống mẫu, không cần gõ từng con số.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3.5 flex flex-col gap-2.5">
+        {hasAnyInput ? (
           <button
             type="button"
             disabled={loading}
-            onClick={handleFillSample}
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-teal-600 bg-white px-4 py-3 text-base font-semibold text-teal-900 shadow-sm transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-100 disabled:opacity-60"
+            onClick={handleClearForm}
+            className="min-h-[44px] rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-60"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 shrink-0 text-teal-700"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-            <span>Điền thử ví dụ chị Hoa (công nhân chờ lương)</span>
+            Xoá trắng
           </button>
-
-          {hasAnyInput ? (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleClearForm}
-              className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-white/90 px-4 py-2.5 text-base font-semibold text-slate-700 transition hover:bg-slate-100 active:bg-slate-200 disabled:opacity-60"
-            >
-              Xoá trắng để tự nhập số của bạn
-            </button>
-          ) : null}
-        </div>
-
-        {presetNotice ? (
-          <p
-            role="status"
-            aria-live="polite"
-            className="mt-3 rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2.5 text-base font-medium leading-relaxed text-teal-950"
-          >
-            {presetNotice}
-          </p>
         ) : null}
-      </section>
+      </div>
+
+      {presetNotice ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-xl bg-teal-50 px-3.5 py-2 text-sm font-medium text-teal-900"
+        >
+          {presetNotice}
+        </p>
+      ) : null}
 
       {/* Form nhập liệu dòng tiền */}
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -647,6 +597,37 @@ export default function PlanPage() {
             >
               2. Ngày nhận lương tiếp theo <span className="text-red-600">*</span>
             </label>
+            <div className="mb-2 grid grid-cols-4 gap-1.5">
+              {[
+                { label: "5 ngày", days: 5 },
+                { label: "10 ngày", days: 10 },
+                { label: "15 ngày", days: 15 },
+                { label: "30 ngày", days: 30 },
+              ].map((opt) => {
+                const targetIso = todayIso ? addDaysToIso(todayIso, opt.days) : "";
+                const active = Boolean(targetIso) && nextPayday === targetIso;
+                return (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      const base = todayIso || getLocalTodayIso();
+                      if (!todayIso) setTodayIso(base);
+                      markEdited();
+                      setNextPayday(addDaysToIso(base, opt.days));
+                    }}
+                    className={`min-h-[40px] rounded-xl text-xs font-semibold transition ${
+                      active
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                    }`}
+                  >
+                    +{opt.label}
+                  </button>
+                );
+              })}
+            </div>
             <input
               id="plan-next-payday"
               type="date"
@@ -659,9 +640,6 @@ export default function PlanPage() {
               }}
               className={`${inputBaseClass} tabular-nums`}
             />
-            <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-              Chọn ngày sau hôm nay (ngày công ty trả lương hoặc ngày có khoản thu chắc chắn).
-            </p>
           </div>
 
           <details className="rounded-xl bg-slate-50 px-3.5 py-2.5">
