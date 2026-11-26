@@ -14,33 +14,11 @@ import {
 import { MessageTemplatesSection } from "./MessageTemplatesSection";
 import { SituationSection } from "./SituationSection";
 
-type TabDefinition = {
-  id: HarassmentTab;
-  stepNumber: string;
-  shortTitle: string;
-  fullTitle: string;
-};
-
-const TABS: readonly TabDefinition[] = [
-  {
-    id: "identify",
-    stepNumber: "Phần 1",
-    shortTitle: "Nhận diện",
-    fullTitle: "Nhận diện hành vi & Biết quyền tự bảo vệ",
-  },
-  {
-    id: "evidence",
-    stepNumber: "Phần 2",
-    shortTitle: "Bằng chứng",
-    fullTitle: "Sổ bằng chứng & Bản tổng hợp trình báo",
-  },
-  {
-    id: "messages",
-    stepNumber: "Phần 3",
-    shortTitle: "Tin nhắn",
-    fullTitle: "Tin nhắn báo trước cho người thân & đồng nghiệp",
-  },
-] as const;
+const TABS: readonly { id: HarassmentTab; label: string }[] = [
+  { id: "identify", label: "1. Quyền của bạn" },
+  { id: "evidence", label: "2. Sổ bằng chứng" },
+  { id: "messages", label: "3. Tin nhắn mẫu" },
+];
 
 export default function HarassmentPage() {
   const [activeTab, setActiveTab] = useState<HarassmentTab>("identify");
@@ -65,10 +43,7 @@ export default function HarassmentPage() {
   };
 
   const handleAddEvent = (newEvent: Omit<EvidenceEvent, "id">) => {
-    const created: EvidenceEvent = {
-      ...newEvent,
-      id: `ev-${nextEventSeq}`,
-    };
+    const created: EvidenceEvent = { ...newEvent, id: `ev-${nextEventSeq}` };
     setNextEventSeq((n) => n + 1);
     setEvents((prev) => [...prev, created]);
   };
@@ -94,55 +69,36 @@ export default function HarassmentPage() {
     }
   };
 
-  const activeTabMeta = TABS.find((t) => t.id === activeTab) ?? TABS[0];
-
   return (
-    <div className="space-y-6 pb-6">
+    <div className="space-y-4">
       <PageHeader
         backHref="/"
-        badge="Giữ bình tĩnh · Bảo vệ an toàn đúng luật"
-        title="Tôi bị đòi nợ, khủng bố tinh thần"
-        subtitle="Dù đang nợ, danh dự, dữ liệu cá nhân và sự an toàn của bạn cùng gia đình vẫn được pháp luật bảo vệ. Hãy làm lần lượt từng phần dưới đây."
+        title="Tôi bị đòi nợ"
+        subtitle="Biết quyền bảo vệ, lưu bằng chứng chuẩn A4 và báo trước người thân."
       />
 
-      {/* Thanh chuyển 3 phần rõ ràng, dễ bấm cho người đang hoảng loạn */}
-      <nav aria-label="Ba phần hỗ trợ khi bị đòi nợ" className="space-y-2.5">
-        <div className="grid grid-cols-3 gap-2">
-          {TABS.map((tab) => {
-            const isCurrent = tab.id === activeTab;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                aria-current={isCurrent ? "step" : undefined}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex min-h-[56px] flex-col items-center justify-center rounded-2xl border px-2 py-2.5 text-center transition active:scale-[0.99] ${
-                  isCurrent
-                    ? "border-teal-700 bg-teal-700 text-white shadow-sm"
-                    : "border-slate-200 bg-white text-slate-800 hover:border-teal-400 hover:bg-teal-50/40"
-                }`}
-              >
-                <span
-                  className={`text-base font-semibold leading-tight ${
-                    isCurrent ? "text-teal-100" : "text-teal-800"
-                  }`}
-                >
-                  {tab.stepNumber}
-                </span>
-                <span className="mt-0.5 text-base font-bold leading-tight">
-                  {tab.shortTitle}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rounded-xl border border-teal-200/80 bg-teal-50/70 px-3.5 py-2.5 text-base font-semibold text-teal-950">
-          Đang mở — {activeTabMeta.stepNumber}: {activeTabMeta.fullTitle}
-        </div>
+      {/* Thanh chuyển 3 mục gọn gàng */}
+      <nav aria-label="Ba phần hỗ trợ" className="grid grid-cols-3 gap-1.5 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200/80">
+        {TABS.map((tab) => {
+          const isCurrent = tab.id === activeTab;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              aria-current={isCurrent ? "step" : undefined}
+              onClick={() => setActiveTab(tab.id)}
+              className={`min-h-[44px] rounded-xl px-2 py-2 text-xs font-bold transition sm:text-sm ${
+                isCurrent
+                  ? "bg-teal-700 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* Nội dung phần đang chọn (mỗi lúc tập trung 1 việc) */}
       {activeTab === "identify" ? (
         <SituationSection
           selectedIds={selectedSituations}
@@ -169,83 +125,40 @@ export default function HarassmentPage() {
 
       {activeTab === "messages" ? <MessageTemplatesSection /> : null}
 
-      {/* Khối Liên hệ khẩn cấp & Điều hướng cuối trang */}
-      <section
-        aria-labelledby="emergency-contact-heading"
-        className="rounded-3xl border-2 border-rose-200 bg-rose-50/70 p-5 shadow-sm"
-      >
-        <div className="inline-flex items-center gap-2 rounded-full border border-rose-300 bg-white px-3 py-1 text-base font-bold text-rose-900">
-          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-rose-600" />
-          <span>Liên hệ khẩn cấp khi cần bảo vệ</span>
-        </div>
-
-        <h2
-          id="emergency-contact-heading"
-          className="mt-3 text-xl font-bold leading-snug text-slate-900"
-        >
-          Khi nào bạn cần báo ngay cho Cơ quan Công an?
-        </h2>
-
-        <div className="mt-3 space-y-3 text-base leading-relaxed text-slate-800">
-          <div className="rounded-2xl border border-rose-200 bg-white p-4">
-            <p className="font-bold text-rose-950">
-              1. Nguy cơ mất an toàn thân thể ngay trước mắt — Gọi 113:
+      {/* Liên hệ khẩn cấp gọn, rõ trọng tâm */}
+      <section className="space-y-2.5 rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-rose-950">
+              Bị đe doạ trực tiếp tại nhà / nơi làm việc?
             </p>
-            <p className="mt-1 text-slate-700">
-              Gọi ngay <strong>113</strong> nếu có người lạ tìm đến tận nhà trọ, nhà riêng hoặc nơi làm việc để đe doạ an toàn thân thể, giữ người trái ý muốn, tạt chất bẩn hoặc gây mất an ninh trật tự.
-            </p>
-            <div className="mt-3">
-              <a
-                href="tel:113"
-                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-rose-700 px-4 py-3 text-base font-bold text-white shadow-sm hover:bg-rose-800 active:scale-[0.99]"
-              >
-                <span>Gọi khẩn cấp Cảnh sát 113</span>
-              </a>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="font-bold text-slate-900">
-              2. Bị khủng bố điện thoại, ghép ảnh bêu riếu:
-            </p>
-            <p className="mt-1 text-slate-700">
-              Hãy mang theo điện thoại có lưu tin nhắn, ghi âm và <strong>Bản tóm tắt sự việc</strong> (ở Phần 2) liên hệ trực tiếp <strong>Công an xã/phường nơi bạn đang tạm trú hoặc thường trú</strong> để được tiếp nhận và hướng dẫn bảo vệ.
+            <p className="text-xs text-rose-900/80">
+              Hoặc mang bản A4 tới Công an xã/phường nơi cư trú.
             </p>
           </div>
+          <a
+            href="tel:113"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-rose-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-rose-800"
+          >
+            Gọi 113
+          </a>
         </div>
       </section>
 
-      {/* Điều hướng hỗ trợ xử lý gốc rễ khoản nợ */}
-      <section
-        aria-labelledby="harassment-next-flows-heading"
-        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-      >
-        <h2
-          id="harassment-next-flows-heading"
-          className="text-lg font-bold leading-snug text-slate-900"
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href="/aftercare"
+          className="flex min-h-[48px] items-center justify-center rounded-xl bg-white px-3 py-2 text-center text-sm font-semibold text-teal-800 shadow-sm ring-1 ring-slate-200 hover:bg-teal-50"
         >
-          Bước tiếp theo để giải quyết khoản vay êm thấm, đúng luật
-        </h2>
-        <p className="mt-1 text-base leading-relaxed text-slate-600">
-          Hiểu rõ số tiền gốc thực nhận và phần lãi trong giới hạn pháp luật sẽ giúp bạn tự tin làm việc văn minh, dứt điểm.
-        </p>
-
-        <div className="mt-4 space-y-3">
-          <Link
-            href="/aftercare"
-            className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl bg-teal-700 px-4 py-3 text-base font-bold text-white shadow-sm hover:bg-teal-800 active:scale-[0.99]"
-          >
-            <span>Tách khoản nợ gốc &amp; lãi trong trần →</span>
-          </Link>
-
-          <Link
-            href="/need"
-            className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-teal-300 bg-teal-50/70 px-4 py-3 text-base font-bold text-teal-950 hover:bg-teal-100 active:scale-[0.99]"
-          >
-            <span>Tôi cần tiền gấp — Tìm phương án xoay xở an toàn →</span>
-          </Link>
-        </div>
-      </section>
+          Tách gốc &amp; lãi →
+        </Link>
+        <Link
+          href="/need"
+          className="flex min-h-[48px] items-center justify-center rounded-xl bg-white px-3 py-2 text-center text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50"
+        >
+          Tìm hướng 0đ →
+        </Link>
+      </div>
     </div>
   );
 }

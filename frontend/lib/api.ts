@@ -162,6 +162,15 @@ export type ExtractInput = {
   sample_id?: string;
 };
 
+export type HarassmentChannel = "call" | "sms" | "zalo" | "facebook" | "in_person";
+
+export type HarassmentAnalyzeResult = {
+  occurred_at?: string | null;
+  channel?: HarassmentChannel | null;
+  sender_info?: string | null;
+  summary?: string | null;
+};
+
 export class ApiError extends Error {
   readonly status?: number;
   readonly isNetworkError: boolean;
@@ -272,5 +281,23 @@ export const api = {
       return planTodayMock as TodayResult;
     }
     return postJson<TodayResult>("/plan/today", req);
+  },
+
+  harassmentAnalyze: async (
+    file: Blob | File,
+    filename = "evidence.jpg",
+  ): Promise<HarassmentAnalyzeResult> => {
+    if (USE_MOCKS) {
+      return {
+        occurred_at: "2026-11-26T09:15",
+        channel: "zalo",
+        sender_info: "Zalo 'Hỗ Trợ Hồ Sơ Nhanh' (0909xxx412)",
+        summary:
+          "Nhắn tin đe doạ gửi ảnh cắt ghép cho danh bạ nếu trước 12h00 không chuyển 1.800.000 đ phí gia hạn.",
+      };
+    }
+    const form = new FormData();
+    form.append("file", file, filename);
+    return postForm<HarassmentAnalyzeResult>("/harassment/analyze", form);
   },
 };

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { api, ApiError } from "@/lib/api";
+import { resizeImageToJpegBlob } from "@/app/loan/resizeImage";
 import {
   CONTACT_CHANNELS,
   copyTextSafely,
@@ -12,6 +14,23 @@ import {
   type ContactChannelId,
   type EvidenceEvent,
 } from "./harassmentData";
+
+function toLocalDateTimeInput(timestampMs: number): string {
+  const date = new Date(timestampMs);
+  if (Number.isNaN(date.getTime())) {
+    return getCurrentLocalDateTimeInput();
+  }
+  const yyyy = String(date.getFullYear());
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+function isContactChannelId(value: unknown): value is ContactChannelId {
+  return CONTACT_CHANNELS.some((item) => item.id === value);
+}
 
 type EvidenceSectionProps = {
   events: readonly EvidenceEvent[];
@@ -41,19 +60,87 @@ export function EvidenceSection({
   const [occurredAt, setOccurredAt] = useState<string>(() =>
     getCurrentLocalDateTimeInput(),
   );
-  const [channel, setChannel] = useState<ContactChannelId>("call");
+  const [channel, setChannel] = useState<ContactChannelId>("sms");
   const [senderInfo, setSenderInfo] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
   const [formNotice, setFormNotice] = useState<string>("");
   const [exportStatus, setExportStatus] = useState<string>("");
   const [reportViewMode, setReportViewMode] = useState<"pdf" | "edit">("pdf");
 
+  const [ocrLoading, setOcrLoading] = useState<boolean>(false);
+  const [ocrNotice, setOcrNotice] = useState<string>("");
+  const [ocrNeedsFallback, setOcrNeedsFallback] = useState<boolean>(false);
+  const [ocrFileName, setOcrFileName] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const sortedEvents = sortEventsChronologically(events);
+
+  const handleApplySampleOcr = () => {
+    setChannel("zalo");
+    setSenderInfo("Zalo 'Hỗ Trợ Hồ Sơ Nhanh' (0909xxx412)");
+    setSummary(
+      "Nhắn tin đe doạ gửi ảnh cắt ghép cho danh bạ nếu trước 12h00 không chuyển 1.800.000 đ phí gia hạn.",
+    );
+    setOcrNeedsFallback(false);
+    setOcrNotice("Đã điền thử mẫu OCR — kiểm tra lại rồi bấm Thêm mốc sự việc.");
+  };
+
+  const handleScreenshotChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setOcrLoading(true);
+    setOcrNotice("");
+    setOcrNeedsFallback(false);
+    setOcrFileName(file.name);
+
+    if (file.lastModified > 0) {
+      setOccurredAt(toLocalDateTimeInput(file.lastModified));
+    }
+
+    try {
+      const resizedBlob = await resizeImageToJpegBlob(file);
+      const res = await api.harassmentAnalyze(resizedBlob, "evidence.jpg");
+
+      if (res.occurred_at && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(res.occurred_at)) {
+        setOccurredAt(res.occurred_at.slice(0, 16));
+      }
+      if (isContactChannelId(res.channel)) {
+        setChannel(res.channel);
+      }
+      if (res.sender_info?.trim()) {
+        setSenderInfo(res.sender_info.trim());
+      }
+      if (res.summary?.trim()) {
+        setSummary(res.summary.trim());
+      }
+
+      setOcrNotice("Đã đọc xong ảnh chụp màn hình — xem lại rồi bấm Thêm mốc sự việc.");
+    } catch (err) {
+      if (err instanceof ApiError && (err.status === 404 || err.isNetworkError)) {
+        setOcrNeedsFallback(true);
+        setOcrNotice(
+          "Máy chủ chưa bật API đọc ảnh tin nhắn (/harassment/analyze). Đã lấy sẵn giờ chụp ảnh — bạn có thể điền thử mẫu OCR hoặc nhập nhanh bên dưới.",
+        );
+      } else {
+        setOcrNotice(
+          err instanceof Error
+            ? err.message
+            : "Chưa đọc được ảnh này. Bạn thử chụp rõ chữ hơn hoặc nhập nhanh bên dưới nhé.",
+        );
+      }
+    } finally {
+      setOcrLoading(false);
+    }
+  };
 
   const handlePrintPdf = () => {
     setReportViewMode("pdf");
     setExportStatus(
-      "Đang mở bản in chuẩn A4 — bạn chọn đích là 'Lưu dưới dạng PDF' (Save as PDF) để lưu tệp PDF đẹp về máy nhé.",
+      "Đang mở bản in chuẩn A4 — chọn 'Lưu dưới dạng PDF' (Save as PDF) để tải về máy.",
     );
     if (typeof window !== "undefined") {
       setTimeout(() => {
@@ -68,9 +155,7 @@ export function EvidenceSection({
     const cleanSummary = summary.trim();
 
     if (!cleanSender || !cleanSummary) {
-      setFormNotice(
-        "Bạn vui lòng điền tên/đầu số đối phương và tóm tắt ngắn gọn sự việc trước khi bấm thêm nhé.",
-      );
+      setFormNotice("Vui lòng điền tên/số đối phương và nội dung sự việc.");
       return;
     }
 
@@ -83,116 +168,162 @@ export function EvidenceSection({
 
     setSenderInfo("");
     setSummary("");
-    setFormNotice("Đã thêm mốc sự việc vào dòng thời gian bên dưới.");
+    setOcrNotice("");
+    setOcrNeedsFallback(false);
+    setOcrFileName("");
+    setFormNotice("Đã thêm vào dòng thời gian bên dưới.");
   };
 
   const handleCopyReport = async () => {
     const ok = await copyTextSafely(reportText);
-    if (ok) {
-      setExportStatus(
-        "Đã sao chép Bản tóm tắt sự việc. Bạn có thể dán vào ứng dụng Ghi chú trên máy hoặc gửi in khi cần.",
-      );
-    } else {
-      setExportStatus(
-        "Trình duyệt chưa cho phép sao chép tự động. Bạn hãy chạm giữ vào ô văn bản phía trên để chọn tất cả và sao chép nhé.",
-      );
-    }
+    setExportStatus(
+      ok
+        ? "Đã sao chép bản trình bày."
+        : "Chưa sao chép tự động được — bạn chạm giữ vào văn bản để sao chép nhé.",
+    );
   };
 
   const handleDownloadTxt = () => {
     const ok = downloadTextFile("ban-tom-tat-su-viec-antam.txt", reportText);
-    if (ok) {
-      setExportStatus(
-        "Đã tải tệp 'ban-tom-tat-su-viec-antam.txt' trực tiếp về thiết bị của bạn (không gửi qua máy chủ nào).",
-      );
-    } else {
-      setExportStatus(
-        "Chưa tạo được tệp tải về trên trình duyệt này. Bạn hãy dùng nút 'Sao chép bản trình bày' để lưu lại nhé.",
-      );
-    }
+    setExportStatus(
+      ok
+        ? "Đã tải tệp ban-tom-tat-su-viec-antam.txt về máy."
+        : "Chưa tải được tệp — bạn dùng nút Sao chép chữ nhé.",
+    );
   };
 
   return (
-    <div className="space-y-5">
-      {/* Cam kết chỉ lưu trong phiên hiện tại */}
-      <section
+    <div className="space-y-4">
+      {/* Nhắc bảo mật gọn 1 dòng */}
+      <div
         aria-label="Bảo mật sổ bằng chứng"
-        className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 text-slate-800"
+        className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-2.5 text-sm font-medium text-emerald-950"
       >
-        <p className="text-base font-bold text-emerald-950">
-          Quyền riêng tư: Chỉ nằm trong phiên mở trang hiện tại
-        </p>
-        <p className="mt-1 text-base leading-relaxed text-slate-700">
-          Mọi nội dung bạn ghi ở đây chỉ lưu tạm trong bộ nhớ màn hình đang mở, không lưu vào bộ nhớ trình duyệt và không gửi đi đâu. Hãy bấm <strong>Sao chép</strong> hoặc <strong>Tải tệp (.txt)</strong> trước khi đóng trang.
-        </p>
-      </section>
+        <span aria-hidden="true">🔒</span>
+        <span>Chỉ lưu tạm trên màn hình đang mở · Ảnh chụp không lưu lên máy chủ.</span>
+      </div>
 
-      {/* Nút điền thử 2 mốc sự việc mẫu */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold leading-snug text-slate-900">
-              Ghi sổ bằng chứng theo dòng thời gian
-            </h2>
-            <p className="text-base leading-relaxed text-slate-600">
-              Ghi lại từng cuộc gọi, tin nhắn theo thứ tự giờ giấc giúp cơ quan chức năng nắm bắt sự việc nhanh và chính xác nhất.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              onLoadSampleEvents();
-              setFormNotice(
-                "Đã điền thử 2 mốc sự việc mẫu để bạn xem ngay cách hệ thống sắp xếp và kết xuất bản trình báo.",
-              );
-            }}
-            className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl border border-teal-300 bg-teal-50 px-4 py-3 text-base font-bold text-teal-950 hover:bg-teal-100 active:scale-[0.99]"
-          >
-            <span>Điền thử 2 mốc sự việc mẫu</span>
-          </button>
-
-          {sortedEvents.length > 0 ? (
+      {/* Khối ghi sổ bằng chứng */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-slate-900">
+            Thêm bằng chứng
+          </h2>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => {
-                onClearAllEvents();
-                setFormNotice("Đã xoá toàn bộ các mốc sự việc trong phiên hiện tại.");
+                onLoadSampleEvents();
+                setFormNotice("Đã thêm 2 mốc mẫu để xem trước.");
               }}
-              className="inline-flex min-h-[52px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-base font-semibold text-slate-700 hover:bg-slate-100 active:scale-[0.99]"
+              className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-900 hover:bg-teal-100"
             >
-              <span>Xoá hết ({sortedEvents.length})</span>
+              Điền 2 mốc mẫu
             </button>
+            {sortedEvents.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onClearAllEvents();
+                  setFormNotice("Đã xoá hết các mốc.");
+                }}
+                className="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Xoá hết ({sortedEvents.length})
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Tải ảnh chụp màn hình tin nhắn để tự OCR điền form */}
+        <div className="mt-3.5 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50/50 p-3.5">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => void handleScreenshotChange(e)}
+            className="sr-only"
+            aria-label="Chọn ảnh chụp màn hình tin nhắn hoặc cuộc gọi"
+          />
+
+          <button
+            type="button"
+            disabled={ocrLoading}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-teal-800 shadow-sm ring-1 ring-teal-200 transition hover:bg-teal-50 active:scale-[0.99] disabled:opacity-60"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 shrink-0"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span>
+              {ocrLoading
+                ? "Đang đọc ảnh chụp màn hình..."
+                : "Chụp / tải ảnh tin nhắn để tự điền (OCR)"}
+            </span>
+          </button>
+
+          <p className="mt-1.5 text-center text-xs text-slate-600">
+            {ocrFileName
+              ? `Ảnh vừa chọn: ${ocrFileName}`
+              : "Tự điền thời gian, kênh, tên/số gọi tới & nội dung từ ảnh chụp màn hình."}
+          </p>
+
+          {ocrNotice ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-2.5 rounded-xl bg-white/90 px-3 py-2 text-xs leading-relaxed text-slate-800 ring-1 ring-teal-200"
+            >
+              <p>{ocrNotice}</p>
+              {ocrNeedsFallback ? (
+                <button
+                  type="button"
+                  onClick={handleApplySampleOcr}
+                  className="mt-2 inline-flex min-h-[36px] items-center justify-center rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-teal-800"
+                >
+                  Điền thử mẫu OCR ngay
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4 border-t border-slate-200 pt-5">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5 border-t border-slate-100 pt-4">
           <div>
             <label
               htmlFor="ev-occurred-at"
-              className="block text-base font-semibold text-slate-900"
+              className="block text-sm font-semibold text-slate-900"
             >
-              1. Thời điểm xảy ra (ngày &amp; giờ)
+              Thời gian
             </label>
             <input
               id="ev-occurred-at"
               type="datetime-local"
               value={occurredAt}
               onChange={(e) => setOccurredAt(e.target.value)}
-              className="mt-1.5 block min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-teal-700"
+              className="mt-1 block min-h-[46px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-base text-slate-900 focus:border-teal-700"
             />
           </div>
 
           <div>
-            <span className="block text-base font-semibold text-slate-900">
-              2. Kênh liên hệ của đối phương
+            <span className="block text-sm font-semibold text-slate-900">
+              Kênh liên hệ
             </span>
             <div
               role="group"
               aria-label="Chọn kênh liên hệ"
-              className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3"
+              className="mt-1.5 flex flex-wrap gap-2"
             >
               {CONTACT_CHANNELS.map((option) => {
                 const active = channel === option.id;
@@ -202,7 +333,7 @@ export function EvidenceSection({
                     type="button"
                     aria-pressed={active}
                     onClick={() => setChannel(option.id)}
-                    className={`min-h-[48px] rounded-xl border px-3 py-2.5 text-base font-semibold transition ${
+                    className={`min-h-[42px] rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${
                       active
                         ? "border-teal-700 bg-teal-700 text-white shadow-sm"
                         : "border-slate-300 bg-white text-slate-800 hover:border-teal-400 hover:bg-slate-50"
@@ -218,52 +349,52 @@ export function EvidenceSection({
           <div>
             <label
               htmlFor="ev-sender-info"
-              className="block text-base font-semibold text-slate-900"
+              className="block text-sm font-semibold text-slate-900"
             >
-              3. Tên tài khoản hoặc đầu số gọi tới
+              Tên tài khoản / số gọi tới
             </label>
-            <p className="mt-1 text-base leading-relaxed text-amber-900">
-              Lưu ý an toàn: Chỉ ghi thông tin phía đối phương — <strong>tuyệt đối không nhập số CCCD hay số tài khoản ngân hàng của bạn</strong>.
-            </p>
             <input
               id="ev-sender-info"
               type="text"
               value={senderInfo}
               onChange={(e) => setSenderInfo(e.target.value)}
-              placeholder="Ví dụ: Số lạ 0909xxx412 hoặc Zalo 'Thu Hồi Nợ'"
-              className="mt-2 block min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-700"
+              placeholder="VD: 0909xxx412 hoặc Zalo 'Thu Hồi Nợ'"
+              className="mt-1 block min-h-[46px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-700"
             />
+            <p className="mt-1 text-xs text-amber-800">
+              Chỉ ghi thông tin đối phương — không nhập CCCD/STK của bạn.
+            </p>
           </div>
 
           <div>
             <label
               htmlFor="ev-summary"
-              className="block text-base font-semibold text-slate-900"
+              className="block text-sm font-semibold text-slate-900"
             >
-              4. Tóm tắt lời lẽ / hành vi xảy ra
+              Nội dung sự việc
             </label>
             <textarea
               id="ev-summary"
               rows={3}
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="Ví dụ: Gọi liên tục 6 cuộc trong 15 phút, doạ cắt ghép ảnh gửi cho tổ trưởng nơi tôi làm việc nếu trước 17h không đóng phí gia hạn..."
-              className="mt-1.5 block w-full rounded-xl border border-slate-300 bg-white p-3.5 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-teal-700"
+              placeholder="VD: Gọi 6 cuộc liên tiếp, doạ gửi ảnh ghép cho người thân nếu không đóng phí gia hạn..."
+              className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-3 text-base leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-teal-700"
             />
           </div>
 
           <button
             type="submit"
-            className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-base font-bold text-white shadow-sm hover:bg-teal-800 active:scale-[0.99]"
+            className="inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-base font-bold text-white shadow-sm hover:bg-teal-800 active:scale-[0.99]"
           >
-            <span>+ Thêm mốc sự việc vào dòng thời gian</span>
+            <span>+ Thêm mốc sự việc</span>
           </button>
 
           {formNotice ? (
             <p
               role="status"
               aria-live="polite"
-              className="rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2.5 text-base font-medium leading-relaxed text-teal-950"
+              className="rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2 text-sm font-medium text-teal-950"
             >
               {formNotice}
             </p>
@@ -274,39 +405,39 @@ export function EvidenceSection({
       {/* Dòng thời gian các mốc đã ghi */}
       <section
         aria-labelledby="evidence-timeline-heading"
-        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3
             id="evidence-timeline-heading"
             className="text-lg font-bold leading-snug text-slate-900"
           >
-            Dòng thời gian bằng chứng đã ghi
+            Dòng thời gian
           </h3>
-          <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-base font-semibold tabular-nums text-teal-950">
+          <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-0.5 text-sm font-semibold tabular-nums text-teal-950">
             {sortedEvents.length} mốc
           </span>
         </div>
 
         {sortedEvents.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-base leading-relaxed text-slate-600">
-            Chưa có mốc sự việc nào. Bạn có thể bấm nút <strong>&ldquo;Điền thử 2 mốc sự việc mẫu&rdquo;</strong> ở trên để xem ví dụ trực quan hoặc tự thêm sự việc vừa gặp.
+          <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3.5 text-sm text-slate-600">
+            Chưa có mốc nào. Tải ảnh tin nhắn hoặc bấm <strong>Điền 2 mốc mẫu</strong> ở trên.
           </p>
         ) : (
-          <ol className="mt-4 space-y-3.5">
+          <ol className="mt-3 space-y-3">
             {sortedEvents.map((ev, index) => (
               <li
                 key={ev.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4"
+                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white px-3 py-1 text-base font-semibold text-teal-900">
-                      <span className="tabular-nums">Mốc #{index + 1}</span>
+                  <div className="space-y-0.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-teal-900">
+                      <span className="tabular-nums">#{index + 1}</span>
                       <span aria-hidden="true">·</span>
                       <span>{getChannelLabel(ev.channel)}</span>
                     </span>
-                    <p className="pt-1 text-base font-bold tabular-nums text-slate-900">
+                    <p className="pt-0.5 text-sm font-bold tabular-nums text-slate-900">
                       {formatDateTimeVi(ev.occurredAt)}
                     </p>
                   </div>
@@ -314,16 +445,16 @@ export function EvidenceSection({
                   <button
                     type="button"
                     onClick={() => onRemoveEvent(ev.id)}
-                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-base font-semibold text-rose-800 hover:bg-rose-50 active:scale-[0.99]"
+                    className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
                   >
-                    Xoá mốc này
+                    Xoá
                   </button>
                 </div>
 
-                <p className="mt-2 text-base font-semibold text-slate-800">
-                  Đối phương: <span className="font-normal">{ev.senderInfo}</span>
+                <p className="mt-1.5 text-sm font-semibold text-slate-800">
+                  {ev.senderInfo}
                 </p>
-                <p className="mt-1.5 text-base leading-relaxed text-slate-700">
+                <p className="mt-1 text-sm leading-relaxed text-slate-700">
                   {ev.summary}
                 </p>
               </li>
