@@ -21,6 +21,21 @@ function generateUuidV4(): string {
   });
 }
 
+export function peekAnonId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const existing = window.localStorage.getItem(ANON_STORAGE_KEY);
+    if (existing && existing.trim().length > 0) {
+      return existing;
+    }
+    return fallbackAnonId || null;
+  } catch {
+    return fallbackAnonId || null;
+  }
+}
+
 export function getAnonId(): string {
   if (typeof window === "undefined") {
     return "";
@@ -39,4 +54,21 @@ export function getAnonId(): string {
     }
     return fallbackAnonId;
   }
+}
+
+export function clearAnonId(): void {
+  fallbackAnonId = "";
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.removeItem(ANON_STORAGE_KEY);
+  } catch {
+    // Bỏ qua nếu trình duyệt chặn truy cập localStorage
+  }
+}
+
+export function resetAnonId(): string {
+  clearAnonId();
+  return getAnonId();
 }

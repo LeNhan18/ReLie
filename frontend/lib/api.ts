@@ -1,8 +1,9 @@
 import aftercareMock from "@/mocks/aftercare.json";
+import planTodayMock from "@/mocks/plan_today.json";
 import { getAnonId } from "./anon";
 
-export { getAnonId } from "./anon";
-export { formatVnd, formatPct } from "./format";
+export { getAnonId, peekAnonId, clearAnonId, resetAnonId } from "./anon";
+export { formatVnd, formatPct, formatIsoDateVi } from "./format";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "1";
@@ -126,6 +127,34 @@ export type AftercareResult = {
   note: string;
 };
 
+export type DebtIn = {
+  label: string;
+  due: string;
+  amount: number;
+};
+
+export type TodayRequest = {
+  today: string;
+  cash_on_hand: number;
+  next_payday: string;
+  avg_daily_spend: number;
+  debts?: DebtIn[];
+  fixed?: DebtIn[];
+  buffer?: number;
+};
+
+export type Shortfall = {
+  debt_label: string;
+  due: string;
+  missing: number;
+};
+
+export type TodayResult = {
+  spendable_today: number;
+  days_until_payday: number;
+  shortfalls: Shortfall[];
+};
+
 export type ExtractInput = {
   file?: Blob | File;
   filename?: string;
@@ -236,5 +265,12 @@ export const api = {
       return aftercareMock as AftercareResult;
     }
     return postJson<AftercareResult>("/aftercare/assess", loan);
+  },
+
+  planToday: async (req: TodayRequest): Promise<TodayResult> => {
+    if (USE_MOCKS) {
+      return planTodayMock as TodayResult;
+    }
+    return postJson<TodayResult>("/plan/today", req);
   },
 };

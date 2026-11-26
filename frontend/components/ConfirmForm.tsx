@@ -182,10 +182,13 @@ export function ConfirmForm({
   const lowSet = new Set(lowConfidenceFields);
   const isLow = (field: string): boolean => lowSet.has(field);
 
-  const inputClass = (low: boolean): string =>
-    low
-      ? "min-h-[48px] w-full rounded-xl border-2 border-amber-500 bg-amber-50 px-3.5 py-2.5 text-base text-slate-900 focus:border-amber-600 focus:outline-none"
-      : "min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 focus:border-teal-700 focus:outline-none";
+  const inputClass = (low: boolean, numeric = false): string => {
+    const numCls = numeric ? " tabular-nums" : "";
+    if (low) {
+      return `min-h-[48px] w-full rounded-xl border-2 border-amber-500 bg-amber-50/90 px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-amber-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20${numCls}`;
+    }
+    return `min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 focus:border-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-700/20${numCls}`;
+  };
 
   const handleAddRow = () => {
     setSchedule((prev) => [...prev, { id: makeRowId(), on: "", amount: "" }]);
@@ -304,11 +307,54 @@ export function ConfirmForm({
   const previewReceived = parseVndDigits(amountReceived);
   const previewExtFee = parseVndDigits(extensionFee);
 
+  const flagItems = [
+    {
+      id: "flag-contacts",
+      checked: dataAccessContacts,
+      onChange: setDataAccessContacts,
+      label: "App đòi quyền truy cập Danh bạ hoặc số người thân",
+    },
+    {
+      id: "flag-upfront",
+      checked: requiresUpfrontPayment,
+      onChange: setRequiresUpfrontPayment,
+      label: "Đòi nộp tiền phí hoặc đặt cọc trước mới giải ngân",
+    },
+    {
+      id: "flag-third-party",
+      checked: thirdPartyCollection,
+      onChange: setThirdPartyCollection,
+      label: "Có bên thứ ba gọi đòi nợ hoặc đe doạ",
+    },
+    {
+      id: "flag-rate-method",
+      checked: hasRateAndMethod,
+      onChange: setHasRateAndMethod,
+      label: "Hợp đồng có ghi rõ lãi suất và cách tính lãi",
+    },
+  ];
+
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       {lowConfidenceFields.length > 0 ? (
-        <div className="rounded-2xl border border-amber-400 bg-amber-50 p-4 text-base leading-relaxed text-amber-950">
-          Có vài chỗ trên ảnh hơi mờ nên đã được tô vàng. Bạn đối chiếu và sửa lại nếu chưa đúng nhé.
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-400 bg-amber-50 p-4 text-base leading-relaxed text-amber-950">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+          >
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          <p>
+            Có vài chỗ trên ảnh hơi mờ nên đã được tô vàng. Bạn đối chiếu và sửa lại nếu chưa đúng nhé.
+          </p>
         </div>
       ) : null}
 
@@ -317,17 +363,17 @@ export function ConfirmForm({
           className={`rounded-2xl p-4 text-base ${
             isLow("principal_stated")
               ? "border-2 border-amber-500 bg-amber-50 text-amber-950"
-              : "border border-slate-200 bg-slate-100 text-slate-800"
+              : "border border-teal-200 bg-teal-50/60 text-slate-900"
           }`}
         >
-          <div className="font-semibold">
+          <div className="font-bold tabular-nums">
             Số tiền ghi trên hợp đồng: {formatVnd(principalStated)}
           </div>
           <p className="mt-1 text-sm leading-relaxed text-slate-700">
             Thông tin này để bạn đối chiếu. Ở ô bên dưới, bạn nhớ nhập đúng số tiền thực tế nhận về tay nhé.
           </p>
           {isLow("principal_stated") ? (
-            <p className="mt-1.5 text-sm font-medium text-amber-900">
+            <p className="mt-1.5 text-sm font-semibold text-amber-900">
               Chữ hơi mờ — bạn kiểm tra kỹ ô này nhé
             </p>
           ) : null}
@@ -335,28 +381,28 @@ export function ConfirmForm({
       ) : null}
 
       {fees.length > 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-base font-bold text-slate-900">
             Các khoản phí đọc được trên hợp đồng
           </h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
             Chỉ dùng để bạn đối chiếu, hệ thống không tự cộng hay trừ vào số tiền bên dưới.
           </p>
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-3 space-y-2.5">
             {fees.map((fee, idx) => {
               const feeLow = isLow(`fees.${fee.name}`);
               return (
                 <li
                   key={`${fee.name}-${idx}`}
-                  className={`rounded-xl p-3 text-base ${
+                  className={`rounded-xl p-3.5 text-base ${
                     feeLow
                       ? "border-2 border-amber-500 bg-amber-50 text-amber-950"
-                      : "border border-slate-200 bg-slate-50 text-slate-800"
+                      : "border border-slate-200 bg-slate-50/80 text-slate-800"
                   }`}
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{fee.name}</span>
-                    <span className="font-semibold">{formatVnd(fee.amount)}</span>
+                    <span className="font-semibold">{fee.name}</span>
+                    <span className="font-bold tabular-nums">{formatVnd(fee.amount)}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
                     <span>
@@ -377,13 +423,32 @@ export function ConfirmForm({
         </div>
       ) : null}
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900">Thông tin khoản vay</h3>
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-800"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6M8 13h8M8 17h5" />
+            </svg>
+          </span>
+          <h3 className="text-lg font-bold text-slate-900">Thông tin khoản vay</h3>
+        </div>
 
         <div>
           <label
             htmlFor="cf-lender-name"
-            className="mb-1.5 block text-base font-medium text-slate-900"
+            className="mb-1.5 block text-base font-semibold text-slate-900"
           >
             1. Tên app hoặc bên cho vay <span className="text-red-600">*</span>
           </label>
@@ -405,7 +470,7 @@ export function ConfirmForm({
         <div>
           <label
             htmlFor="cf-amount-received"
-            className="mb-1.5 block text-base font-medium text-slate-900"
+            className="mb-1.5 block text-base font-semibold text-slate-900"
           >
             2. Số tiền thực nhận về tay (VND) <span className="text-red-600">*</span>
           </label>
@@ -416,11 +481,12 @@ export function ConfirmForm({
             value={amountReceived}
             onChange={(e) => setAmountReceived(sanitizeDigits(e.target.value))}
             placeholder="Ví dụ: 3000000"
-            className={inputClass(isLow("amount_received"))}
+            className={inputClass(isLow("amount_received"), true)}
           />
           {previewReceived !== null && previewReceived > 0 ? (
-            <p className="mt-1 text-sm text-teal-800">
-              Số tiền đang nhập: <span className="font-semibold">{formatVnd(previewReceived)}</span>
+            <p className="mt-1.5 text-sm text-teal-800">
+              Số tiền đang nhập:{" "}
+              <span className="font-bold tabular-nums">{formatVnd(previewReceived)}</span>
             </p>
           ) : null}
           {isLow("amount_received") ? (
@@ -433,7 +499,7 @@ export function ConfirmForm({
         <div>
           <label
             htmlFor="cf-disbursed-date"
-            className="mb-1.5 block text-base font-medium text-slate-900"
+            className="mb-1.5 block text-base font-semibold text-slate-900"
           >
             3. Ngày nhận tiền <span className="text-red-600">*</span>
           </label>
@@ -442,7 +508,7 @@ export function ConfirmForm({
             type="date"
             value={disbursedDate}
             onChange={(e) => setDisbursedDate(e.target.value)}
-            className={inputClass(isLow("disbursed_date"))}
+            className={inputClass(isLow("disbursed_date"), true)}
           />
           {isLow("disbursed_date") ? (
             <p className="mt-1.5 text-sm font-medium text-amber-900">
@@ -452,9 +518,9 @@ export function ConfirmForm({
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="space-y-3.5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="text-lg font-bold text-slate-900">
             4. Lịch phải trả tiền <span className="text-red-600">*</span>
           </h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
@@ -473,10 +539,10 @@ export function ConfirmForm({
             return (
               <div
                 key={row.id}
-                className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5"
+                className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-base font-semibold text-slate-800">
+                  <span className="inline-flex items-center rounded-lg bg-white px-2.5 py-1 text-sm font-bold text-slate-800 ring-1 ring-inset ring-slate-200">
                     Kỳ trả {idx + 1}
                   </span>
                   {schedule.length >= 2 ? (
@@ -485,7 +551,7 @@ export function ConfirmForm({
                       onClick={() => handleRemoveRow(row.id)}
                       className="min-h-[48px] rounded-xl border border-red-200 bg-white px-3.5 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 active:bg-red-100"
                     >
-                      Xoá
+                      Xoá kỳ này
                     </button>
                   ) : null}
                 </div>
@@ -502,7 +568,7 @@ export function ConfirmForm({
                     type="date"
                     value={row.on}
                     onChange={(e) => handleRowChange(row.id, "on", e.target.value)}
-                    className={inputClass(isLow("schedule"))}
+                    className={inputClass(isLow("schedule"), true)}
                   />
                 </div>
 
@@ -520,12 +586,12 @@ export function ConfirmForm({
                     value={row.amount}
                     onChange={(e) => handleRowChange(row.id, "amount", e.target.value)}
                     placeholder="Ví dụ: 4200000"
-                    className={inputClass(isLow("schedule"))}
+                    className={inputClass(isLow("schedule"), true)}
                   />
                   {rowPreview !== null && rowPreview > 0 ? (
-                    <p className="mt-1 text-sm text-teal-800">
+                    <p className="mt-1.5 text-sm text-teal-800">
                       Số tiền đang nhập:{" "}
-                      <span className="font-semibold">{formatVnd(rowPreview)}</span>
+                      <span className="font-bold tabular-nums">{formatVnd(rowPreview)}</span>
                     </p>
                   ) : null}
                 </div>
@@ -537,15 +603,16 @@ export function ConfirmForm({
         <button
           type="button"
           onClick={handleAddRow}
-          className="min-h-[48px] w-full rounded-xl border border-dashed border-teal-600 bg-teal-50 px-4 py-2.5 text-base font-semibold text-teal-800 transition hover:bg-teal-100 active:bg-teal-200"
+          className="inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-teal-600 bg-teal-50/80 px-4 py-2.5 text-base font-semibold text-teal-900 transition hover:bg-teal-100 active:bg-teal-200"
         >
-          + Thêm kỳ trả
+          <span aria-hidden="true" className="text-lg leading-none">+</span>
+          <span>Thêm kỳ trả</span>
         </button>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="text-lg font-bold text-slate-900">
             5. Thông tin thêm (nếu bạn biết)
           </h3>
           <p className="mt-1 text-sm text-slate-600">
@@ -567,7 +634,7 @@ export function ConfirmForm({
             value={rateStatedPctYear}
             onChange={(e) => setRateStatedPctYear(e.target.value)}
             placeholder="Để trống nếu không rõ (nhập 0 nếu ghi 0%)"
-            className={inputClass(isLow("rate_stated_pct_year"))}
+            className={inputClass(isLow("rate_stated_pct_year"), true)}
           />
           {isLow("rate_stated_pct_year") ? (
             <p className="mt-1.5 text-sm font-medium text-amber-900">
@@ -590,12 +657,12 @@ export function ConfirmForm({
             value={extensionFee}
             onChange={(e) => setExtensionFee(sanitizeDigits(e.target.value))}
             placeholder="Để trống nếu không có"
-            className={inputClass(isLow("extension_fee"))}
+            className={inputClass(isLow("extension_fee"), true)}
           />
           {previewExtFee !== null && previewExtFee > 0 ? (
-            <p className="mt-1 text-sm text-teal-800">
+            <p className="mt-1.5 text-sm text-teal-800">
               Số tiền đang nhập:{" "}
-              <span className="font-semibold">{formatVnd(previewExtFee)}</span>
+              <span className="font-bold tabular-nums">{formatVnd(previewExtFee)}</span>
             </p>
           ) : null}
           {isLow("extension_fee") ? (
@@ -619,7 +686,7 @@ export function ConfirmForm({
             value={latePenaltyPctPerDay}
             onChange={(e) => setLatePenaltyPctPerDay(e.target.value)}
             placeholder="Ví dụ: 1 hoặc 0,5"
-            className={inputClass(isLow("late_penalty_pct_per_day"))}
+            className={inputClass(isLow("late_penalty_pct_per_day"), true)}
           />
           {isLow("late_penalty_pct_per_day") ? (
             <p className="mt-1.5 text-sm font-medium text-amber-900">
@@ -629,58 +696,53 @@ export function ConfirmForm({
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900">
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-bold text-slate-900">
           6. Dấu hiệu đi kèm (chạm để đánh dấu nếu có)
         </h3>
 
-        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-base text-slate-900 hover:bg-slate-50">
-          <input
-            type="checkbox"
-            checked={dataAccessContacts}
-            onChange={(e) => setDataAccessContacts(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-teal-700"
-          />
-          <span>App đòi quyền truy cập Danh bạ hoặc số người thân</span>
-        </label>
-
-        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-base text-slate-900 hover:bg-slate-50">
-          <input
-            type="checkbox"
-            checked={requiresUpfrontPayment}
-            onChange={(e) => setRequiresUpfrontPayment(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-teal-700"
-          />
-          <span>Đòi nộp tiền phí hoặc đặt cọc trước mới giải ngân</span>
-        </label>
-
-        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-base text-slate-900 hover:bg-slate-50">
-          <input
-            type="checkbox"
-            checked={thirdPartyCollection}
-            onChange={(e) => setThirdPartyCollection(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-teal-700"
-          />
-          <span>Có bên thứ ba gọi đòi nợ hoặc đe doạ</span>
-        </label>
-
-        <label className="flex min-h-[48px] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-base text-slate-900 hover:bg-slate-50">
-          <input
-            type="checkbox"
-            checked={hasRateAndMethod}
-            onChange={(e) => setHasRateAndMethod(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-teal-700"
-          />
-          <span>Hợp đồng có ghi rõ lãi suất và cách tính lãi</span>
-        </label>
+        <div className="space-y-2.5">
+          {flagItems.map((flag) => (
+            <label
+              key={flag.id}
+              className={`flex min-h-[52px] cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-base leading-relaxed transition ${
+                flag.checked
+                  ? "border-teal-600 bg-teal-50/70 font-medium text-teal-950"
+                  : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={flag.checked}
+                onChange={(e) => flag.onChange(e.target.checked)}
+                className="h-5 w-5 shrink-0 rounded accent-teal-700"
+              />
+              <span>{flag.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {validationError ? (
         <div
           role="alert"
-          className="rounded-2xl border border-red-300 bg-red-50 p-4 text-base font-medium leading-relaxed text-red-900"
+          className="flex items-start gap-2.5 rounded-2xl border border-red-300 bg-red-50 p-4 text-base font-medium leading-relaxed text-red-900"
         >
-          {validationError}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mt-0.5 h-5 w-5 shrink-0 text-red-700"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+          <span>{validationError}</span>
         </div>
       ) : null}
 
@@ -688,9 +750,19 @@ export function ConfirmForm({
         <button
           type="submit"
           disabled={loading}
-          className="min-h-[52px] w-full rounded-xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "Đang xử lý, bạn đợi chút nhé..." : submitLabel}
+          {loading ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+              />
+              <span>Đang xử lý, bạn đợi chút nhé...</span>
+            </>
+          ) : (
+            <span>{submitLabel}</span>
+          )}
         </button>
 
         {onBack ? (
