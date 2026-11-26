@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ConfirmForm } from "@/components/ConfirmForm";
@@ -14,6 +14,7 @@ import {
   type ConfirmedLoan,
   type LoanTerms,
 } from "@/lib/api";
+import { LOAN_FILE_ACCEPT, prepareLoanUpload } from "@/app/loan/uploadFile";
 import { DataLockGuide } from "./DataLockGuide";
 import { DebtBreakdownSection } from "./DebtBreakdownSection";
 import { IcsReminderCard } from "./IcsReminderCard";
@@ -26,7 +27,7 @@ import {
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "1";
 
 type Step = "form" | "result";
-type LoadingKind = "sample" | "assess" | null;
+type LoadingKind = "sample" | "upload" | "assess" | null;
 type RetryAction =
   | { kind: "sample"; sampleId: SampleId }
   | { kind: "assess"; loan: ConfirmedLoan }
@@ -47,10 +48,12 @@ function scrollToTopSmooth(): void {
 }
 
 export default function AftercarePage() {
+  const contractFileInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState<Step>("form");
   const [prefillTerms, setPrefillTerms] = useState<LoanTerms | null>(null);
   const [lowFields, setLowFields] = useState<string[]>([]);
   const [activeSampleId, setActiveSampleId] = useState<SampleId | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [loadingSampleId, setLoadingSampleId] = useState<SampleId | null>(null);
   const [formResetKey, setFormResetKey] = useState<number>(0);
   const [showQuickLockOnForm, setShowQuickLockOnForm] = useState<boolean>(false);
@@ -100,9 +103,45 @@ export default function AftercarePage() {
     setPrefillTerms(null);
     setLowFields([]);
     setActiveSampleId(null);
+    setUploadedFileName(null);
     setError(null);
     setRetryAction(null);
     setFormResetKey((prev) => prev + 1);
+  };
+
+  const handleUploadContract = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!selectedFile) {
+      return;
+    }
+
+    setError(null);
+    setRetryAction(null);
+    setLoadingKind("upload");
+
+    try {
+      const prepared = await prepareLoanUpload(selectedFile);
+      const response = await api.extract({
+        file: prepared.file,
+        filename: prepared.filename,
+      });
+      setPrefillTerms(cloneTerms(response.terms));
+      setLowFields([...response.low_confidence_fields]);
+      setActiveSampleId(null);
+      setUploadedFileName(selectedFile.name);
+      setFormResetKey((prev) => prev + 1);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Chưa đọc được tệp hợp đồng này. Bạn thử chọn tệp khác hoặc tự nhập bên dưới nhé.";
+      setError(message);
+    } finally {
+      setLoadingKind(null);
+    }
   };
 
   const handleAssess = async (loan: ConfirmedLoan): Promise<void> => {
@@ -184,6 +223,13 @@ export default function AftercarePage() {
         />
       ) : null}
 
+      {step === "form" && loadingKind === "upload" ? (
+        <LoadingState
+          title="Đang đọc hợp đồng để điền tự động..."
+          hint="Tệp chỉ xử lý tạm trong bộ nhớ, không lưu tệp gốc."
+        />
+      ) : null}
+
       {step === "form" && loadingKind === "sample" ? (
         <LoadingState
           title={
@@ -260,6 +306,62 @@ export default function AftercarePage() {
           </button>
 
           {showQuickLockOnForm ? <DataLockGuide /> : null}
+        </div>
+
+        {/* Nút tải hợp đồng (ảnh / PDF / Word) để tự điền toàn bộ form */}
+        <input
+          ref={contractFileInputRef}
+          type="file"
+          accept={LOAN_FILE_ACCEPT}
+          onChange={(e) => {
+            void handleUploadContract(e);
+          }}
+          className="sr-only"
+          aria-label="Tải ảnh, PDF hoặc Word hợp đồng để điền tự động toàn bộ form"
+        />
+
+        <div className="space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => contractFileInputRef.current?.click()}
+            className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 shrink-0"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Tải hợp đồng (ảnh / PDF / Word) để tự điền</span>
+          </button>
+          <p className="text-center text-xs text-slate-500">
+            Tự điền tên bên cho vay, tiền thực nhận và lịch trả · Không lưu tệp gốc
+          </p>
+          {uploadedFileName ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-between gap-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+            >
+              <span className="truncate">Đã điền từ: {uploadedFileName}</span>
+              <button
+                type="button"
+                onClick={handleClearForm}
+                className="shrink-0 font-semibold text-teal-700 underline"
+              >
+                Xoá
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {/* Khu vực chọn nhanh 3 mẫu thử đối chứng */}

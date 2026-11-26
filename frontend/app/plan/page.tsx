@@ -14,6 +14,7 @@ import {
   type TodayRequest,
   type TodayResult,
 } from "@/lib/api";
+import { LOAN_FILE_ACCEPT, prepareLoanUpload } from "@/app/loan/uploadFile";
 
 type ObligationRow = {
   id: string;
@@ -108,6 +109,7 @@ export default function PlanPage() {
   const nextRowIdRef = useRef(1);
   const formTopRef = useRef<HTMLDivElement | null>(null);
   const resultSectionRef = useRef<HTMLDivElement | null>(null);
+  const debtFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const makeRowId = (prefix: string): string => {
     const id = `${prefix}-${nextRowIdRef.current}`;
@@ -124,6 +126,9 @@ export default function PlanPage() {
   const [debtRows, setDebtRows] = useState<ObligationRow[]>([]);
 
   const [presetNotice, setPresetNotice] = useState<string | null>(null);
+  const [debtUploadLoading, setDebtUploadLoading] = useState<boolean>(false);
+  const [debtUploadError, setDebtUploadError] = useState<string | null>(null);
+  const [debtUploadNotice, setDebtUploadNotice] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -254,6 +259,72 @@ export default function PlanPage() {
           : row,
       ),
     );
+  };
+
+  const handleDebtContractUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!selectedFile) {
+      return;
+    }
+
+    setDebtUploadLoading(true);
+    setDebtUploadError(null);
+    setDebtUploadNotice(null);
+
+    try {
+      const prepared = await prepareLoanUpload(selectedFile);
+      const response = await api.extract({
+        file: prepared.file,
+        filename: prepared.filename,
+      });
+      const terms = response.terms;
+      const lenderLabel =
+        terms.lender_name.value?.trim() || "Khoản vay từ hợp đồng";
+
+      const extractedRows: ObligationRow[] =
+        terms.schedule.length > 0
+          ? terms.schedule.map((item, idx) => ({
+              id: makeRowId("debt"),
+              label:
+                terms.schedule.length > 1
+                  ? `${lenderLabel} (Kỳ ${idx + 1})`
+                  : lenderLabel,
+              due: item.on,
+              amount: String(item.amount),
+            }))
+          : [
+              {
+                id: makeRowId("debt"),
+                label: lenderLabel,
+                due: "",
+                amount: "",
+              },
+            ];
+
+      markEdited();
+      setDebtRows((prev) => {
+        const nonEmpty = prev.filter(
+          (r) => r.label.trim() !== "" || r.due !== "" || r.amount !== "",
+        );
+        return [...nonEmpty, ...extractedRows];
+      });
+      setDebtUploadNotice(
+        terms.schedule.length > 0
+          ? `Đã tự điền ${terms.schedule.length} kỳ trả nợ từ "${selectedFile.name}". Bạn kiểm tra lại các ô bên dưới nhé.`
+          : `Đã đọc tên bên cho vay từ "${selectedFile.name}", bạn điền thêm hạn trả và số tiền nhé.`,
+      );
+    } catch (err: unknown) {
+      setDebtUploadError(
+        err instanceof Error
+          ? err.message
+          : "Chưa đọc được tệp hợp đồng này. Bạn thử chọn tệp khác hoặc tự nhập nhé.",
+      );
+    } finally {
+      setDebtUploadLoading(false);
+    }
   };
 
   const submitPlanRequest = async (payload: TodayRequest) => {
@@ -939,17 +1010,76 @@ export default function PlanPage() {
             </div>
           )}
 
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleAddDebtRow}
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-teal-600 bg-teal-50/70 px-4 py-2.5 text-base font-semibold text-teal-900 transition hover:bg-teal-100 active:bg-teal-200 disabled:opacity-60"
-          >
-            <span aria-hidden="true" className="text-lg leading-none">
-              +
-            </span>
-            <span>Thêm khoản nợ sắp đến hạn</span>
-          </button>
+          <input
+            ref={debtFileInputRef}
+            type="file"
+            accept={LOAN_FILE_ACCEPT}
+            onChange={(e) => {
+              void handleDebtContractUpload(e);
+            }}
+            className="sr-only"
+            aria-label="Tải ảnh, PDF hoặc Word hợp đồng vay để tự điền khoản nợ"
+          />
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={loading || debtUploadLoading}
+              onClick={() => debtFileInputRef.current?.click()}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 shrink-0"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span>
+                {debtUploadLoading
+                  ? "Đang đọc hợp đồng để điền tự động..."
+                  : "Tải hợp đồng (ảnh / PDF / Word) để tự điền"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              disabled={loading || debtUploadLoading}
+              onClick={handleAddDebtRow}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-teal-600 bg-teal-50/70 px-4 py-2.5 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 active:bg-teal-200 disabled:opacity-60"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">
+                +
+              </span>
+              <span>Hoặc tự thêm khoản nợ thủ công</span>
+            </button>
+          </div>
+
+          {debtUploadNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2.5 text-sm font-medium text-teal-950"
+            >
+              {debtUploadNotice}
+            </p>
+          ) : null}
+
+          {debtUploadError ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-950"
+            >
+              {debtUploadError}
+            </p>
+          ) : null}
         </section>
 
         {validationError ? (
