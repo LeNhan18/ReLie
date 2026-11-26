@@ -47,3 +47,11 @@ Không sửa `docs/api-contract.md`, `infra/**`, `.claude/**` hoặc các thay �
 - AGY: đổi nhãn thành tải ảnh/PDF/Word; ảnh mới resize, PDF/Word gửi nguyên file và tên tương ứng; thêm retry đúng loại file, thông báo giới hạn và trạng thái đọc tài liệu. File PDF mẫu đang mở không được đưa qua hàm resize ảnh.
 
 Trạng thái: mới ghi đề xuất theo `AGENTS.md`; chưa thay upload, chưa thêm parser hoặc dependency, chưa sửa hợp đồng API. Cần Lê chốt các định dạng và giới hạn trên để triển khai backend, AGY triển khai giao diện.
+
+## Tra cứu kênh vay trực tuyến — đã nối backend, chưa xác minh live thành công
+
+Theo yêu cầu tìm dữ liệu khi người dùng hỏi, `/need/options` đã thay nguồn gợi ý từ CSV bằng adapter Tavily Search/Extract. Giữ nguyên shape API; kiểm chứng pháp nhân, giấy phép và domain từ cùng bản ghi NHNN trước khi đọc trang sản phẩm. Không chuyển hồ sơ cá nhân ra dịch vụ tìm kiếm, không tự công bố báo giá hoặc cam kết duyệt vay. Khi nguồn lỗi/thiếu cấu trúc thì không trả kênh vay chưa xác minh và ghi lý do trong `note`.
+
+Chi tiết cấu hình, giới hạn parser và trạng thái xác minh tại `backend/README-live-loans.md`. Smoke keyless ngày 2026-11-26 trả HTTP 429; chưa có bằng chứng end-to-end thật thành công và chưa deploy. Test thành công dùng fixture hư cấu, không thay cho việc xác minh nguồn thực tế.
+
+AGY: hiển thị `note`, nguồn chính thức và nhãn ngày kiểm tra; không gọi `updated_at` là thời điểm ngân hàng cập nhật lãi suất. Trạng thái `co_the` chưa xác nhận phù hợp số tiền/hạn cần tiền hay đủ điều kiện vay. Không tự hiển thị “được duyệt”.

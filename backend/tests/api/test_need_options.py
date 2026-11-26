@@ -2,7 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from antam.main import app
+from antam.schemas.need import Option
 from antam.services import need
+from antam.services.live_lending import Discovery
 
 client = TestClient(app)
 
@@ -37,20 +39,22 @@ def test_salary_advance_kept_when_eligible_or_unknown(salary_profile, fit):
 
 
 def test_non_loan_options_precede_lending_channels(monkeypatch):
-    data = need.seed()
-    channel = {
-        "channel_id": "fictional_fixture", "name": "Kênh thử nghiệm hư cấu", "apr_min_pct": "4",
-        "apr_max_pct": "6", "speed": "Tùy hồ sơ", "needs_salary": "true",
-    }
-    monkeypatch.setattr(need, "seed", lambda: {**data, "loan_channels": [channel]})
+    channel = Option(kind="loan_channel", option_id="fictional_fixture", title="MẪU HƯ CẤU",
+                     cost_note="Chưa có báo giá", speed="Tùy hồ sơ", fit="co_the")
+    monkeypatch.setattr(need, "discover_loan_options", lambda p: Discovery([channel], "Đã tra cứu nguồn thử nghiệm."))
     profile = {"purpose": "khac", "amount_band": "duoi_5tr", "has_salary": True}
     response = client.post("/need/options", json=profile)
     assert response.status_code == 200
     options = response.json()["options"]
     assert options[-1]["option_id"] == "fictional_fixture"
     assert all(item["kind"] == "no_loan" for item in options[:-1])
-    profile["has_salary"] = False
-    response = client.post("/need/options", json=profile)
+    assert "Đã tra cứu nguồn thử nghiệm" in response.json()["note"]
+
+
+def test_seed_channels_are_not_used_as_live_offers(monkeypatch):
+    data = need.seed()
+    monkeypatch.setattr(need, "seed", lambda: {**data, "loan_channels": [{"name": "Kênh cũ không được xác minh"}]})
+    response = client.post("/need/options", json={"purpose": "khac", "amount_band": "duoi_5tr"})
     assert response.status_code == 200
     assert all(item["kind"] == "no_loan" for item in response.json()["options"])
 
