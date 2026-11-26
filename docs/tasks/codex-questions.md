@@ -47,3 +47,34 @@ Không sửa `docs/api-contract.md`, `infra/**`, `.claude/**` hoặc các thay �
 - AGY: đổi nhãn thành tải ảnh/PDF/Word; ảnh mới resize, PDF/Word gửi nguyên file và tên tương ứng; thêm retry đúng loại file, thông báo giới hạn và trạng thái đọc tài liệu. File PDF mẫu đang mở không được đưa qua hàm resize ảnh.
 
 Trạng thái: mới ghi đề xuất theo `AGENTS.md`; chưa thay upload, chưa thêm parser hoặc dependency, chưa sửa hợp đồng API. Cần Lê chốt các định dạng và giới hạn trên để triển khai backend, AGY triển khai giao diện.
+
+## Tra cứu kênh vay trực tuyến — đã nối backend, chưa xác minh live thành công
+
+Theo yêu cầu tìm dữ liệu khi người dùng hỏi, `/need/options` đã thay nguồn gợi ý từ CSV bằng adapter Tavily Search/Extract. Giữ nguyên shape API; kiểm chứng pháp nhân, giấy phép và domain từ cùng bản ghi NHNN trước khi đọc trang sản phẩm. Không chuyển hồ sơ cá nhân ra dịch vụ tìm kiếm, không tự công bố báo giá hoặc cam kết duyệt vay. Khi nguồn lỗi/thiếu cấu trúc thì không trả kênh vay chưa xác minh và ghi lý do trong `note`.
+
+Chi tiết cấu hình, giới hạn parser và trạng thái xác minh tại `backend/README-live-loans.md`. Smoke keyless ngày 2026-11-26 trả HTTP 429; chưa có bằng chứng end-to-end thật thành công và chưa deploy. Test thành công dùng fixture hư cấu, không thay cho việc xác minh nguồn thực tế.
+
+AGY: hiển thị `note`, nguồn chính thức và nhãn ngày kiểm tra; không gọi `updated_at` là thời điểm ngân hàng cập nhật lãi suất. Trạng thái `co_the` chưa xác nhận phù hợp số tiền/hạn cần tiền hay đủ điều kiện vay. Không tự hiển thị “được duyệt”.
+
+## Tài khoản và sổ tài chính theo tháng — thay đổi hướng sản phẩm
+
+Ngày 2026-11-26, Lê chọn hướng có tài khoản để dễ dùng và giữ lịch sử. Phần này thay thế giả định chỉ dùng `anon_id`/chỉ lưu trên thiết bị cho sổ tài chính; chưa thay hợp đồng API hoặc triển khai đăng nhập.
+
+Đề xuất dùng Supabase Auth + Postgres, ưu tiên đăng nhập Google. Người dùng vẫn xem thử/tính khoản vay không cần đăng nhập; đăng nhập khi muốn lưu và đồng bộ thu nhập, giao dịch chi tiêu, khoản nợ, lịch trả và kết quả đã xác nhận. Không yêu cầu CCCD hoặc số tài khoản ngân hàng để dùng sổ tài chính. Email từ nhà cung cấp đăng nhập là dữ liệu tài khoản; không gọi đây là chế độ ẩn danh tuyệt đối.
+
+Phạm vi hợp đồng cần Lê bổ sung/chốt trước khi Codex/AGY nối:
+
+| Phần | Thiết kế đề xuất |
+|---|---|
+| Đăng nhập | Google OAuth qua Supabase; callback/đăng xuất do tầng server của frontend xử lý. Không tự lưu mật khẩu. Chưa tạo project, OAuth client hoặc cấu hình tài khoản bên ngoài. |
+| Phiên và phân quyền | Cookie HttpOnly/Secure với SameSite phù hợp; state/PKCE và CSRF cho thao tác ghi. Không dùng cấu hình mặc định của SDK lưu session trong localStorage vì AGENTS chỉ cho lưu `anon_id` ở đó. Backend xác minh phiên/token, lấy `user_id` từ danh tính đã xác thực, không tin `user_id` trong request hoặc `anon_id` như quyền truy cập. Cần chốt cookie/Bearer, origin và CORS khi frontend/backend khác domain. |
+| Hồ sơ | `GET /me` trả hồ sơ tối thiểu; `DELETE /me` xóa dữ liệu tài chính, tài khoản và thu hồi phiên theo chính sách đã chốt. Cần thêm thao tác xuất dữ liệu trước khi xóa nếu đưa vào v1. |
+| Giao dịch | Đề xuất CRUD `/transactions`; mỗi bản ghi có ngày, loại thu/chi/trả nợ, số tiền VND nguyên, nhóm chi, ghi chú tùy chọn và liên kết khoản nợ nếu có. Phải chốt schema, phân trang, idempotency và xử lý sửa/xóa giao dịch. |
+| Khoản nợ | Đề xuất CRUD `/debts` để lưu điều khoản đã xác nhận, lịch trả và các lần thanh toán. Không lưu ảnh hợp đồng gốc. Không tự suy dư nợ gốc từ tổng tiền thanh toán khi chưa tách gốc/lãi được duyệt. |
+| Tổng hợp tháng | Đề xuất `GET /finance/month?month=YYYY-MM`; các tổng thu, chi và trả nợ được tools backend tính, có test. Khoản nhận từ vay không được tự coi là thu nhập kiếm được; trả nợ không bị đếm hai lần như vừa chi tiêu vừa trả nợ. Giữ `/plan/today` tính từ dữ liệu đầu vào hiện có cho đến khi chốt cách kết nối sổ. |
+| Lưu trữ | Bảng tài chính gắn với `user_id`, có RLS và kiểm tra quyền ở backend; không thể đọc/sửa/xóa dữ liệu người khác bằng cách đổi ID. Service-role/admin key chỉ ở server, không đưa vào frontend. Cần chốt thời hạn lưu, xuất/xóa và xử lý tài khoản bị xóa. |
+| Chuyển dữ liệu cũ | Người dùng đăng nhập rồi chọn nhập sổ trên thiết bị vào tài khoản, xác nhận trước khi đồng bộ. Không tự nhận sở hữu dữ liệu server bằng mã `anon_id` do client cung cấp. |
+
+Chủ triển khai: Codex phụ trách backend/xác thực request/tools/tích hợp dữ liệu trong phạm vi được giao; AGY phụ trách đăng nhập, phiên phía frontend và các màn hình sổ tài chính. Lê quản lý thay đổi hợp đồng và hạ tầng. Không sửa các file được bảo vệ hoặc frontend trong lượt chuẩn bị này.
+
+Gói Supabase Free có hạn mức và có thể pause khi ít hoạt động; chưa coi là cam kết hoạt động liên tục trong kỳ chấm. Nguồn: [Auth](https://supabase.com/docs/guides/auth), [Google OAuth](https://supabase.com/docs/guides/auth/social-sign-in/auth-google), [giá](https://supabase.com/pricing), [project pausing](https://supabase.com/docs/guides/platform/free-project-pausing).

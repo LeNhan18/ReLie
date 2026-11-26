@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from antam.ai.bedrock_client import converse_json, load_prompt
+from antam.ai.groq_client import groq_json
 from antam.ai.judge import check, numbers_in
 from antam.config import settings
 
@@ -24,7 +25,12 @@ def explain(received: int, repaid: int, term_days: int, messages: list[str]) -> 
     if settings.ai_mode == "mock":
         return base
     try:
-        out = converse_json(settings.bedrock_model_write, load_prompt("write_explanation"), base, max_tokens=400)
+        if settings.ai_mode == "paddle_groq":
+            out = groq_json(load_prompt("write_explanation"), base, max_tokens=400)
+        elif settings.ai_mode == "bedrock":
+            out = converse_json(settings.bedrock_model_write, load_prompt("write_explanation"), base, max_tokens=400)
+        else:
+            return base
         text = str(out.get("text") or "")
         # Judge: mọi con số trong lời LLM phải có trong bản template do tool tạo ra
         return text if text and not check(text, numbers_in(base)) else base
