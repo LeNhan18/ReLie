@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { OptionCard } from "@/components/OptionCard";
@@ -78,7 +78,11 @@ export default function NeedPage() {
   const [purpose, setPurpose] = useState<NeedPurpose>("hoc_phi");
   const [amountBand, setAmountBand] = useState<AmountBand>("duoi_5tr");
   const [deadlineKey, setDeadlineKey] = useState<DeadlineChoiceKey>("3d");
-  const [deadline, setDeadline] = useState<string | null>(() => addDaysLocalIso(3));
+  const [deadline, setDeadline] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDeadline((prev) => prev ?? addDaysLocalIso(3));
+  }, []);
 
   const [hasSalary, setHasSalary] = useState<boolean | null>(null);
   const [hasAsset, setHasAsset] = useState<boolean | null>(null);

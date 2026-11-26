@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { api, ApiError } from "@/lib/api";
 import { resizeImageToJpegBlob } from "@/app/loan/resizeImage";
 import {
@@ -57,9 +57,11 @@ export function EvidenceSection({
   onRegenerateReport,
   onGoToMessages,
 }: EvidenceSectionProps) {
-  const [occurredAt, setOccurredAt] = useState<string>(() =>
-    getCurrentLocalDateTimeInput(),
-  );
+  const [occurredAt, setOccurredAt] = useState<string>("");
+
+  useEffect(() => {
+    setOccurredAt((prev) => prev || getCurrentLocalDateTimeInput());
+  }, []);
   const [channel, setChannel] = useState<ContactChannelId>("sms");
   const [senderInfo, setSenderInfo] = useState<string>("");
   const [summary, setSummary] = useState<string>("");
