@@ -32,3 +32,18 @@ Các phần cần Lê chốt trong hợp đồng trước khi Codex mở API và
 | Vai cá nhân/thanh toán | AGY phụ trách IndexedDB, xóa toàn bộ, `.ics` Asia/Ho_Chi_Minh nhắc trước 3 và 1 ngày; không lưu ảnh hợp đồng gốc. Chỉ chuẩn bị và xác nhận từng hành động, không gửi thư/chuyển tiền thật. Chưa sửa frontend. |
 
 Không sửa `docs/api-contract.md`, `infra/**`, `.claude/**` hoặc các thay đổi frontend của AGY. Chưa tích hợp LLM/OCR miễn phí trong đợt này: tài liệu assistants không chốt nhà cung cấp/model; kiểm tra vẫn chạy `AI_MODE=mock`.
+
+## Yêu cầu upload PDF/Word — chờ chốt hợp đồng
+
+Đã kiểm tra giao diện nhánh AGY: `frontend/app/loan/page.tsx` dùng `accept="image/*"`, chuyển mọi file qua `resizeImageToJpegBlob`, gửi tên `contract.jpg`. Backend chưa có bộ đọc PDF/Word. Chỉ mở rộng `accept` sẽ không tạo được luồng đọc tài liệu.
+
+Đề xuất phạm vi để Lê chốt:
+
+- Giữ endpoint `POST /loan/extract`, multipart `file` hoặc `text` hoặc `sample_id`, giữ nguyên response; mở rộng `file` nhận ảnh, `.pdf`, `.docx`. Đề xuất giới hạn mỗi file 4.000.000 byte, PDF tối đa 10 trang, văn bản trích xuất tối đa 50.000 ký tự; vượt giới hạn trả 413 bằng tiếng Việt.
+- PDF có lớp chữ: đọc văn bản trong bộ nhớ. PDF scan: cần pipeline OCR từng trang có giới hạn; nếu chưa triển khai OCR thì trả lỗi rõ, yêu cầu ảnh chụp hoặc dán văn bản, tuyệt đối không trả dữ liệu mẫu thay tài liệu đã tải.
+- `.docx`: đọc đoạn văn và bảng theo thứ tự tài liệu, giới hạn kích thước giải nén để chặn ZIP bomb; không thực thi macro, không tải liên kết ngoài. `.doc` cũ/`.docm` chưa hỗ trợ, trả 415 và hướng dẫn xuất sang PDF hoặc `.docx`. Nếu cần `.doc` cũ, phải chốt thêm bộ chuyển đổi và môi trường chạy.
+- Kiểm tra nội dung/chữ ký file cùng MIME thay vì tin đuôi file. File hỏng, mã hóa/đặt mật khẩu, không đọc được hoặc không có chữ trả lỗi 422 rõ ràng. Không ghi file gốc ra đĩa/S3/log.
+- Backend: thêm bộ đọc tài liệu nội bộ và test PDF/Word hợp lệ, bảng Word, file giả đuôi, file hỏng/mã hóa, giới hạn trang/dung lượng/giải nén. Test bằng `AI_MODE=mock` và mock extractor để chứng minh văn bản đọc được thật sự tới extractor; không coi JSON mẫu là bằng chứng đọc được hợp đồng.
+- AGY: đổi nhãn thành tải ảnh/PDF/Word; ảnh mới resize, PDF/Word gửi nguyên file và tên tương ứng; thêm retry đúng loại file, thông báo giới hạn và trạng thái đọc tài liệu. File PDF mẫu đang mở không được đưa qua hàm resize ảnh.
+
+Trạng thái: mới ghi đề xuất theo `AGENTS.md`; chưa thay upload, chưa thêm parser hoặc dependency, chưa sửa hợp đồng API. Cần Lê chốt các định dạng và giới hạn trên để triển khai backend, AGY triển khai giao diện.
