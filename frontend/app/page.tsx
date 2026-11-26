@@ -1,111 +1,40 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
 
-type FeatureTile = {
-  href: string;
-  title: string;
-  shortDesc: string;
-  iconBg: string;
-  icon: ReactNode;
-};
-
-const FEATURE_TILES: readonly FeatureTile[] = [
+const FEATURE_TILES = [
   {
     href: "/loan",
     title: "Kiểm tra khoản vay",
     shortDesc: "Tính lãi thật từ ảnh, PDF",
-    iconBg: "bg-teal-50 text-teal-700",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6" />
-        <circle cx="11.5" cy="14.5" r="2.5" />
-        <path d="m13.3 16.3 1.7 1.7" />
-      </svg>
-    ),
+    iconSrc: "/icons/03-kiem-tra-khoan-vay.png",
+    iconAlt: "Kiểm tra khoản vay",
   },
   {
     href: "/aftercare",
     title: "Tôi đã lỡ vay",
     shortDesc: "Tách gốc, lãi & khoá quyền",
-    iconBg: "bg-amber-50 text-amber-700",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M12 3v18" />
-        <path d="m5 7 7-3 7 3" />
-        <path d="m3 13 3-6 3 6a3 3 0 0 1-6 0Z" />
-        <path d="m15 13 3-6 3 6a3 3 0 0 1-6 0Z" />
-      </svg>
-    ),
+    iconSrc: "/icons/04-toi-da-lo-vay.png",
+    iconAlt: "Tôi đã lỡ vay",
   },
   {
     href: "/harassment",
     title: "Tôi bị đòi nợ",
     shortDesc: "Lưu bằng chứng & mẫu tin",
-    iconBg: "bg-rose-50 text-rose-700",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="M12 8v4" />
-        <path d="M12 16h.01" />
-      </svg>
-    ),
+    iconSrc: "/icons/05-toi-bi-doi-no.png",
+    iconAlt: "Tôi bị đòi nợ",
   },
   {
     href: "/plan",
     title: "Hôm nay tiêu gì",
     shortDesc: "Dự báo tiền tới kỳ lương",
-    iconBg: "bg-emerald-50 text-emerald-700",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-5 w-5"
-      >
-        <rect x="3" y="5" width="18" height="15" rx="2.5" />
-        <path d="M16 3v4M8 3v4M3 10h18" />
-        <path d="M8 15h4" />
-      </svg>
-    ),
+    iconSrc: "/icons/06-hom-nay-tieu-gi.png",
+    iconAlt: "Hôm nay tiêu gì",
   },
-];
+] as const;
 
 export default function Home() {
   return (
     <div className="space-y-4">
-      {/* Thẻ chính chuẩn app tài chính: gọn, rõ, có nút hành động ngay */}
+      {/* Thẻ Hero xanh ngọc tích hợp nút hành động chính */}
       <section className="relative overflow-hidden rounded-2xl bg-[#0D5C57] p-5 text-white shadow-sm">
         <div
           aria-hidden="true"
@@ -129,25 +58,14 @@ export default function Home() {
 
           <Link
             href="/need"
-            className="mt-4 flex min-h-[50px] w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-base font-bold text-teal-900 shadow-sm transition hover:bg-teal-50 active:scale-[0.99]"
+            className="mt-4 flex min-h-[54px] w-full items-center justify-between rounded-xl bg-white px-3.5 py-2.5 text-base font-bold text-teal-950 shadow-sm transition hover:bg-teal-50 active:scale-[0.99]"
           >
-            <span className="flex items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-100 text-teal-800"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </span>
+            <span className="flex items-center gap-3">
+              <img
+                src="/icons/02-can-tien-gap.png"
+                alt="Tôi cần tiền gấp"
+                className="h-9 w-9 shrink-0 object-contain"
+              />
               <span>Tôi cần tiền gấp</span>
             </span>
             <svg
@@ -166,19 +84,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Lưới 2x2 chuẩn app ngân hàng — icon vector sắc nét, 0 ảnh giả */}
+      {/* Lưới 2x2 với bộ icon 3D nền trắng tiệp hoàn toàn */}
       <section aria-label="Các công cụ chính" className="grid grid-cols-2 gap-3">
         {FEATURE_TILES.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="group flex min-h-[124px] flex-col justify-between rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/80 transition hover:ring-teal-500/60 hover:shadow-sm active:scale-[0.98]"
+            className="group flex min-h-[132px] flex-col justify-between rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/80 transition hover:ring-teal-600/50 hover:shadow-sm active:scale-[0.98]"
           >
-            <span
-              className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.iconBg}`}
-            >
-              {item.icon}
-            </span>
+            <img
+              src={item.iconSrc}
+              alt={item.iconAlt}
+              className="h-12 w-12 object-contain transition duration-200 group-hover:scale-105"
+            />
 
             <div className="mt-3">
               <div className="text-[15px] font-bold leading-snug text-slate-900">
