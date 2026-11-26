@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cỡ chữ dễ đọc cho mọi lứa tuổi, giữ khoảng thở gọn gàng */
 html {
   font-size: 16px;
   scroll-behavior: smooth;
@@ -11,12 +10,123 @@ html {
 }
 
 body {
-  background-color: #f5f7f9;
-  color: #0f172a;
+  background-color: #fdf7fa;
+  color: #1f1721;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .tabular-nums,
 [data-numeric="true"] {
   font-variant-numeric: tabular-nums;
+}
+
+/* Hoạt ảnh dễ thương cho bộ icon hoạt hình AnTâm */
+@keyframes antam-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes antam-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.12); }
+}
+
+@keyframes antam-scan {
+  0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+  50% { transform: translate(3px, -2px) rotate(-6deg); }
+}
+
+@keyframes antam-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-6deg); }
+  75% { transform: rotate(6deg); }
+}
+
+@keyframes antam-coin-hop {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  45% { transform: translateY(-4.5px) scale(1.06); }
+}
+
+@keyframes antam-sparkle {
+  0%, 100% { opacity: 0.45; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.antam-float {
+  animation: antam-float 2.8s ease-in-out infinite;
+}
+
+.antam-blink {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: antam-blink 4.2s ease-in-out infinite;
+}
+
+.antam-scan {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: antam-scan 2.4s ease-in-out infinite;
+}
+
+.antam-wiggle {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: antam-wiggle 2.6s ease-in-out infinite;
+}
+
+.antam-coin-hop {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: antam-coin-hop 2.2s ease-in-out infinite;
+}
+
+.antam-sparkle {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: antam-sparkle 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .antam-float,
+  .antam-blink,
+  .antam-scan,
+  .antam-wiggle,
+  .antam-coin-hop,
+  .antam-sparkle {
+    animation: none;
+  }
+}
+
+/* Bản in / Xuất PDF chuẩn khổ A4 sạch sẽ, ẩn toàn bộ thanh điều hướng */
+@page {
+  size: A4 portrait;
+  margin: 18mm 18mm 18mm 22mm;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .antam-pdf-sheet,
+  .antam-pdf-sheet * {
+    visibility: visible;
+  }
+
+  .antam-pdf-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
 }

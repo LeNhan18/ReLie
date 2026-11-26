@@ -14,6 +14,7 @@ import {
   type TodayRequest,
   type TodayResult,
 } from "@/lib/api";
+import { LOAN_FILE_ACCEPT, prepareLoanUpload } from "@/app/loan/uploadFile";
 
 type ObligationRow = {
   id: string;
@@ -108,6 +109,7 @@ export default function PlanPage() {
   const nextRowIdRef = useRef(1);
   const formTopRef = useRef<HTMLDivElement | null>(null);
   const resultSectionRef = useRef<HTMLDivElement | null>(null);
+  const debtFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const makeRowId = (prefix: string): string => {
     const id = `${prefix}-${nextRowIdRef.current}`;
@@ -118,12 +120,15 @@ export default function PlanPage() {
   const [todayIso, setTodayIso] = useState<string>("");
   const [cashOnHand, setCashOnHand] = useState<string>("");
   const [nextPayday, setNextPayday] = useState<string>("");
-  const [avgDailySpend, setAvgDailySpend] = useState<string>("");
+  const [avgDailySpend, setAvgDailySpend] = useState<string>("100000");
   const [buffer, setBuffer] = useState<string>("0");
   const [fixedRows, setFixedRows] = useState<ObligationRow[]>([]);
   const [debtRows, setDebtRows] = useState<ObligationRow[]>([]);
 
   const [presetNotice, setPresetNotice] = useState<string | null>(null);
+  const [debtUploadLoading, setDebtUploadLoading] = useState<boolean>(false);
+  const [debtUploadError, setDebtUploadError] = useState<string | null>(null);
+  const [debtUploadNotice, setDebtUploadNotice] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -182,7 +187,7 @@ export default function PlanPage() {
     setTodayIso(currentToday);
     setCashOnHand("");
     setNextPayday("");
-    setAvgDailySpend("");
+    setAvgDailySpend("100000");
     setBuffer("0");
     setFixedRows([]);
     setDebtRows([]);
@@ -256,6 +261,72 @@ export default function PlanPage() {
     );
   };
 
+  const handleDebtContractUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!selectedFile) {
+      return;
+    }
+
+    setDebtUploadLoading(true);
+    setDebtUploadError(null);
+    setDebtUploadNotice(null);
+
+    try {
+      const prepared = await prepareLoanUpload(selectedFile);
+      const response = await api.extract({
+        file: prepared.file,
+        filename: prepared.filename,
+      });
+      const terms = response.terms;
+      const lenderLabel =
+        terms.lender_name.value?.trim() || "Khoản vay từ hợp đồng";
+
+      const extractedRows: ObligationRow[] =
+        terms.schedule.length > 0
+          ? terms.schedule.map((item, idx) => ({
+              id: makeRowId("debt"),
+              label:
+                terms.schedule.length > 1
+                  ? `${lenderLabel} (Kỳ ${idx + 1})`
+                  : lenderLabel,
+              due: item.on,
+              amount: String(item.amount),
+            }))
+          : [
+              {
+                id: makeRowId("debt"),
+                label: lenderLabel,
+                due: "",
+                amount: "",
+              },
+            ];
+
+      markEdited();
+      setDebtRows((prev) => {
+        const nonEmpty = prev.filter(
+          (r) => r.label.trim() !== "" || r.due !== "" || r.amount !== "",
+        );
+        return [...nonEmpty, ...extractedRows];
+      });
+      setDebtUploadNotice(
+        terms.schedule.length > 0
+          ? `Đã tự điền ${terms.schedule.length} kỳ trả nợ từ "${selectedFile.name}". Bạn kiểm tra lại các ô bên dưới nhé.`
+          : `Đã đọc tên bên cho vay từ "${selectedFile.name}", bạn điền thêm hạn trả và số tiền nhé.`,
+      );
+    } catch (err: unknown) {
+      setDebtUploadError(
+        err instanceof Error
+          ? err.message
+          : "Chưa đọc được tệp hợp đồng này. Bạn thử chọn tệp khác hoặc tự nhập nhé.",
+      );
+    } finally {
+      setDebtUploadLoading(false);
+    }
+  };
+
   const submitPlanRequest = async (payload: TodayRequest) => {
     setLoading(true);
     setApiError(null);
@@ -311,13 +382,7 @@ export default function PlanPage() {
       return null;
     }
 
-    const parsedDaily = parseVndDigits(avgDailySpend);
-    if (parsedDaily === null) {
-      setValidationError(
-        "Bạn nhập mức chi sinh hoạt thiết yếu trung bình 1 ngày (nhập 0 nếu chưa tính) nhé.",
-      );
-      return null;
-    }
+    const parsedDaily = parseVndDigits(avgDailySpend) ?? 100_000;
 
     const trimmedBuffer = buffer.trim();
     const parsedBuffer = trimmedBuffer === "" ? 0 : parseVndDigits(trimmedBuffer);
@@ -432,92 +497,42 @@ export default function PlanPage() {
     <div ref={formTopRef} className="space-y-6 pb-6">
       <PageHeader
         backHref="/"
-        badge="Dự báo dòng tiền an toàn"
-        title="Kế hoạch tiền & nợ"
-        subtitle="Biết rõ hôm nay bạn được tiêu tối đa bao nhiêu để trụ vững tới ngày nhận lương và thấy sớm khoản nợ có nguy cơ hụt tiền."
+        title="Hôm nay tiêu gì"
+        subtitle="Nhập tiền hiện có & ngày lương để biết mức tiêu an toàn."
       />
 
-      {/* Khối điền nhanh tình huống mẫu */}
-      <section
-        aria-labelledby="sample-preset-heading"
-        className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50/90 via-white to-amber-50/50 p-4 shadow-sm"
-      >
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden="true"
-            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white shadow-sm"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-          </span>
+      {/* Thanh điền nhanh gọn 1 dòng */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleFillSample}
+          className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-50 px-3.5 py-2 text-sm font-semibold text-teal-800 ring-1 ring-inset ring-teal-200 transition hover:bg-teal-100 disabled:opacity-60"
+        >
+          <span>Thử ví dụ chị Hoa</span>
+        </button>
 
-          <div className="min-w-0 flex-1">
-            <h2
-              id="sample-preset-heading"
-              className="text-base font-bold leading-snug text-slate-900"
-            >
-              Muốn xem thử cách tính ngay?
-            </h2>
-            <p className="mt-1 text-base leading-relaxed text-slate-600">
-              Bấm nút dưới đây để điền sẵn tình huống mẫu, không cần gõ từng con số.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3.5 flex flex-col gap-2.5">
+        {hasAnyInput ? (
           <button
             type="button"
             disabled={loading}
-            onClick={handleFillSample}
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-teal-600 bg-white px-4 py-3 text-base font-semibold text-teal-900 shadow-sm transition hover:bg-teal-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-100 disabled:opacity-60"
+            onClick={handleClearForm}
+            className="min-h-[44px] rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-60"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5 shrink-0 text-teal-700"
-            >
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-            <span>Điền thử ví dụ chị Hoa (công nhân chờ lương)</span>
+            Xoá trắng
           </button>
-
-          {hasAnyInput ? (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleClearForm}
-              className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-white/90 px-4 py-2.5 text-base font-semibold text-slate-700 transition hover:bg-slate-100 active:bg-slate-200 disabled:opacity-60"
-            >
-              Xoá trắng để tự nhập số của bạn
-            </button>
-          ) : null}
-        </div>
-
-        {presetNotice ? (
-          <p
-            role="status"
-            aria-live="polite"
-            className="mt-3 rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2.5 text-base font-medium leading-relaxed text-teal-950"
-          >
-            {presetNotice}
-          </p>
         ) : null}
-      </section>
+      </div>
+
+      {presetNotice ? (
+        <p
+          role="status"
+          aria-live="polite"
+          className="rounded-xl bg-teal-50 px-3.5 py-2 text-sm font-medium text-teal-900"
+        >
+          {presetNotice}
+        </p>
+      ) : null}
 
       {/* Form nhập liệu dòng tiền */}
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -582,6 +597,37 @@ export default function PlanPage() {
             >
               2. Ngày nhận lương tiếp theo <span className="text-red-600">*</span>
             </label>
+            <div className="mb-2 grid grid-cols-4 gap-1.5">
+              {[
+                { label: "5 ngày", days: 5 },
+                { label: "10 ngày", days: 10 },
+                { label: "15 ngày", days: 15 },
+                { label: "30 ngày", days: 30 },
+              ].map((opt) => {
+                const targetIso = todayIso ? addDaysToIso(todayIso, opt.days) : "";
+                const active = Boolean(targetIso) && nextPayday === targetIso;
+                return (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      const base = todayIso || getLocalTodayIso();
+                      if (!todayIso) setTodayIso(base);
+                      markEdited();
+                      setNextPayday(addDaysToIso(base, opt.days));
+                    }}
+                    className={`min-h-[40px] rounded-xl text-xs font-semibold transition ${
+                      active
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                    }`}
+                  >
+                    +{opt.label}
+                  </button>
+                );
+              })}
+            </div>
             <input
               id="plan-next-payday"
               type="date"
@@ -594,80 +640,101 @@ export default function PlanPage() {
               }}
               className={`${inputBaseClass} tabular-nums`}
             />
-            <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-              Chọn ngày sau hôm nay (ngày công ty trả lương hoặc ngày có khoản thu chắc chắn).
-            </p>
           </div>
 
-          <div>
-            <label
-              htmlFor="plan-avg-daily"
-              className="mb-1.5 block text-base font-semibold text-slate-900"
-            >
-              3. Chi ăn uống, xăng xe thiết yếu trung bình 1 ngày (VND){" "}
-              <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="plan-avg-daily"
-              type="text"
-              inputMode="numeric"
-              disabled={loading}
-              value={avgDailySpend}
-              onChange={(e) => {
-                markEdited();
-                setAvgDailySpend(sanitizeDigits(e.target.value));
-              }}
-              placeholder="Ví dụ: 120000"
-              className={`${inputBaseClass} tabular-nums`}
-            />
-            {previewDaily !== null ? (
-              <p className="mt-1.5 text-base text-teal-800">
-                Đang nhập:{" "}
-                <span className="font-bold tabular-nums">
-                  {formatVnd(previewDaily)}
-                </span>
-                /ngày
-              </p>
-            ) : (
-              <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-                Dùng để dự báo xem tới ngày đóng nợ bạn có bị hụt tiền mặt hay không.
-              </p>
-            )}
-          </div>
+          <details className="rounded-xl bg-slate-50 px-3.5 py-2.5">
+            <summary className="cursor-pointer select-none text-sm font-semibold text-slate-700">
+              Tuỳ chỉnh mức sinh hoạt &amp; dự phòng (mặc định {formatVnd(previewDaily ?? 100_000)}/ngày)
+            </summary>
 
-          <div>
-            <label
-              htmlFor="plan-buffer"
-              className="mb-1.5 block text-base font-semibold text-slate-900"
-            >
-              4. Khoản dự phòng khẩn cấp muốn giữ lại (VND)
-            </label>
-            <input
-              id="plan-buffer"
-              type="text"
-              inputMode="numeric"
-              disabled={loading}
-              value={buffer}
-              onChange={(e) => {
-                markEdited();
-                setBuffer(sanitizeDigits(e.target.value));
-              }}
-              placeholder="Mặc định: 0"
-              className={`${inputBaseClass} tabular-nums`}
-            />
-            {previewBuffer !== null && previewBuffer > 0 ? (
-              <p className="mt-1.5 text-base text-teal-800">
-                Giữ riêng dự phòng:{" "}
-                <span className="font-bold tabular-nums">
-                  {formatVnd(previewBuffer)}
-                </span>
-              </p>
-            ) : (
-              <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-                Tiền cất riêng phòng ốm đau hoặc hỏng xe bất ngờ (để 0 nếu chưa có).
-              </p>
-            )}
-          </div>
+            <div className="mt-3 space-y-3.5">
+              <div>
+                <p className="text-xs font-semibold text-slate-600">
+                  Mức ăn uống, xăng xe trung bình / ngày (dùng để cảnh báo hụt tiền)
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Tiết kiệm · 80k", value: "80000" },
+                    { label: "Phổ thông · 100k", value: "100000" },
+                    { label: "Gia đình · 180k", value: "180000" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        markEdited();
+                        setAvgDailySpend(opt.value);
+                      }}
+                      className={`min-h-[40px] rounded-lg px-2 text-xs font-semibold transition ${
+                        avgDailySpend === opt.value
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="plan-avg-daily"
+                  type="text"
+                  inputMode="numeric"
+                  disabled={loading}
+                  value={avgDailySpend}
+                  onChange={(e) => {
+                    markEdited();
+                    setAvgDailySpend(sanitizeDigits(e.target.value));
+                  }}
+                  placeholder="Hoặc nhập số khác (VND/ngày)"
+                  className={`mt-2 ${inputBaseClass} tabular-nums`}
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-slate-600">
+                  Khoản dự phòng khẩn cấp muốn cất riêng (tuỳ chọn)
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Không giữ (0đ)", value: "0" },
+                    { label: "200.000 đ", value: "200000" },
+                    { label: "500.000 đ", value: "500000" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        markEdited();
+                        setBuffer(opt.value);
+                      }}
+                      className={`min-h-[40px] rounded-lg px-2 text-xs font-semibold transition ${
+                        buffer === opt.value
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="plan-buffer"
+                  type="text"
+                  inputMode="numeric"
+                  disabled={loading}
+                  value={buffer}
+                  onChange={(e) => {
+                    markEdited();
+                    setBuffer(sanitizeDigits(e.target.value));
+                  }}
+                  placeholder="Mặc định: 0"
+                  className={`mt-2 ${inputBaseClass} tabular-nums`}
+                />
+              </div>
+            </div>
+          </details>
         </section>
 
         {/* Danh sách chi cố định sắp đóng */}
@@ -939,17 +1006,76 @@ export default function PlanPage() {
             </div>
           )}
 
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleAddDebtRow}
-            className="inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-teal-600 bg-teal-50/70 px-4 py-2.5 text-base font-semibold text-teal-900 transition hover:bg-teal-100 active:bg-teal-200 disabled:opacity-60"
-          >
-            <span aria-hidden="true" className="text-lg leading-none">
-              +
-            </span>
-            <span>Thêm khoản nợ sắp đến hạn</span>
-          </button>
+          <input
+            ref={debtFileInputRef}
+            type="file"
+            accept={LOAN_FILE_ACCEPT}
+            onChange={(e) => {
+              void handleDebtContractUpload(e);
+            }}
+            className="sr-only"
+            aria-label="Tải ảnh, PDF hoặc Word hợp đồng vay để tự điền khoản nợ"
+          />
+
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={loading || debtUploadLoading}
+              onClick={() => debtFileInputRef.current?.click()}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 shrink-0"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span>
+                {debtUploadLoading
+                  ? "Đang đọc hợp đồng để điền tự động..."
+                  : "Tải hợp đồng (ảnh / PDF / Word) để tự điền"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              disabled={loading || debtUploadLoading}
+              onClick={handleAddDebtRow}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-teal-600 bg-teal-50/70 px-4 py-2.5 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 active:bg-teal-200 disabled:opacity-60"
+            >
+              <span aria-hidden="true" className="text-lg leading-none">
+                +
+              </span>
+              <span>Hoặc tự thêm khoản nợ thủ công</span>
+            </button>
+          </div>
+
+          {debtUploadNotice ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="rounded-xl border border-teal-200 bg-teal-50 px-3.5 py-2.5 text-sm font-medium text-teal-950"
+            >
+              {debtUploadNotice}
+            </p>
+          ) : null}
+
+          {debtUploadError ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-950"
+            >
+              {debtUploadError}
+            </p>
+          ) : null}
         </section>
 
         {validationError ? (

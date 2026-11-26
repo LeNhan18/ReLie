@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import {
+  AftercareLockIcon,
+  HarassmentGuardIcon,
+  LoanScanIcon,
+  MascotShieldIcon,
+  NeedWalletIcon,
+  PlanPiggyIcon,
+} from "./AnimatedIcons";
 
 export type PageHeaderProps = {
   title: string;
@@ -15,15 +23,27 @@ export type PageHeaderProps = {
   imageAlt?: string;
 };
 
-function getRouteImage(pathname: string | null): string | undefined {
-  if (!pathname) return undefined;
-  if (pathname === "/need" || pathname.startsWith("/need/")) return "/images/card-need.jpg";
-  if (pathname === "/loan" || pathname.startsWith("/loan/")) return "/images/card-loan.jpg";
-  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) return "/images/card-aftercare.jpg";
-  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) return "/images/card-harassment.jpg";
-  if (pathname === "/plan" || pathname.startsWith("/plan/")) return "/images/card-plan.jpg";
-  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) return "/images/hero-antam.jpg";
-  return undefined;
+function renderRouteCuteIcon(pathname: string | null): ReactNode {
+  if (!pathname) return null;
+  if (pathname === "/need" || pathname.startsWith("/need/")) {
+    return <NeedWalletIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/loan" || pathname.startsWith("/loan/")) {
+    return <LoanScanIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) {
+    return <AftercareLockIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) {
+    return <HarassmentGuardIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/plan" || pathname.startsWith("/plan/")) {
+    return <PlanPiggyIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) {
+    return <MascotShieldIcon className="h-11 w-11" />;
+  }
+  return null;
 }
 
 export function PageHeader({
@@ -33,20 +53,18 @@ export function PageHeader({
   backHref,
   backLabel = "Trang chủ",
   rightSlot,
-  imageSrc,
-  imageAlt,
 }: PageHeaderProps) {
   const pathname = usePathname();
-  const resolvedImageSrc = imageSrc ?? getRouteImage(pathname);
+  const cuteIcon = renderRouteCuteIcon(pathname);
 
   return (
-    <header className="space-y-3">
+    <header className="space-y-2.5">
       {(backHref || rightSlot) ? (
         <div className="flex items-center justify-between gap-2">
           {backHref ? (
             <Link
               href={backHref}
-              className="-ml-2 inline-flex min-h-[44px] items-center gap-1 rounded-xl px-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200/60 hover:text-slate-900"
+              className="-ml-2 inline-flex min-h-[40px] items-center gap-1 rounded-xl px-2 text-sm font-semibold text-slate-600 transition hover:bg-teal-50 hover:text-teal-800"
             >
               <svg
                 aria-hidden="true"
@@ -70,13 +88,11 @@ export function PageHeader({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-3.5">
-        {resolvedImageSrc ? (
-          <img
-            src={resolvedImageSrc}
-            alt={imageAlt ?? title}
-            className="h-14 w-14 shrink-0 rounded-2xl object-cover shadow-sm ring-1 ring-black/5"
-          />
+      <div className="flex items-center gap-3">
+        {cuteIcon ? (
+          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-teal-50 p-1 ring-1 ring-teal-200/70">
+            {cuteIcon}
+          </span>
         ) : null}
 
         <div className="min-w-0 flex-1">
@@ -89,7 +105,7 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle ? (
-            <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
+            <p className="mt-0.5 text-sm leading-snug text-slate-500">
               {subtitle}
             </p>
           ) : null}

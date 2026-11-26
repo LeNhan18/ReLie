@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ConfirmForm } from "@/components/ConfirmForm";
@@ -14,6 +14,7 @@ import {
   type ConfirmedLoan,
   type LoanTerms,
 } from "@/lib/api";
+import { LOAN_FILE_ACCEPT, prepareLoanUpload } from "@/app/loan/uploadFile";
 import { DataLockGuide } from "./DataLockGuide";
 import { DebtBreakdownSection } from "./DebtBreakdownSection";
 import { IcsReminderCard } from "./IcsReminderCard";
@@ -26,7 +27,7 @@ import {
 const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "1";
 
 type Step = "form" | "result";
-type LoadingKind = "sample" | "assess" | null;
+type LoadingKind = "sample" | "upload" | "assess" | null;
 type RetryAction =
   | { kind: "sample"; sampleId: SampleId }
   | { kind: "assess"; loan: ConfirmedLoan }
@@ -47,10 +48,12 @@ function scrollToTopSmooth(): void {
 }
 
 export default function AftercarePage() {
+  const contractFileInputRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState<Step>("form");
   const [prefillTerms, setPrefillTerms] = useState<LoanTerms | null>(null);
   const [lowFields, setLowFields] = useState<string[]>([]);
   const [activeSampleId, setActiveSampleId] = useState<SampleId | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [loadingSampleId, setLoadingSampleId] = useState<SampleId | null>(null);
   const [formResetKey, setFormResetKey] = useState<number>(0);
   const [showQuickLockOnForm, setShowQuickLockOnForm] = useState<boolean>(false);
@@ -100,9 +103,45 @@ export default function AftercarePage() {
     setPrefillTerms(null);
     setLowFields([]);
     setActiveSampleId(null);
+    setUploadedFileName(null);
     setError(null);
     setRetryAction(null);
     setFormResetKey((prev) => prev + 1);
+  };
+
+  const handleUploadContract = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!selectedFile) {
+      return;
+    }
+
+    setError(null);
+    setRetryAction(null);
+    setLoadingKind("upload");
+
+    try {
+      const prepared = await prepareLoanUpload(selectedFile);
+      const response = await api.extract({
+        file: prepared.file,
+        filename: prepared.filename,
+      });
+      setPrefillTerms(cloneTerms(response.terms));
+      setLowFields([...response.low_confidence_fields]);
+      setActiveSampleId(null);
+      setUploadedFileName(selectedFile.name);
+      setFormResetKey((prev) => prev + 1);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Chưa đọc được tệp hợp đồng này. Bạn thử chọn tệp khác hoặc tự nhập bên dưới nhé.";
+      setError(message);
+    } finally {
+      setLoadingKind(null);
+    }
   };
 
   const handleAssess = async (loan: ConfirmedLoan): Promise<void> => {
@@ -184,6 +223,13 @@ export default function AftercarePage() {
         />
       ) : null}
 
+      {step === "form" && loadingKind === "upload" ? (
+        <LoadingState
+          title="Đang đọc hợp đồng để điền tự động..."
+          hint="Tệp chỉ xử lý tạm trong bộ nhớ, không lưu tệp gốc."
+        />
+      ) : null}
+
       {step === "form" && loadingKind === "sample" ? (
         <LoadingState
           title={
@@ -208,52 +254,16 @@ export default function AftercarePage() {
       ) : null}
 
       {/* BƯỚC 1: FORM NHẬP / ĐIỀN MẪU */}
-      <div className={showFormContent ? "space-y-5" : "hidden"}>
-        {/* Mẹo đọc 2 nguồn bằng chứng chuẩn xác */}
-        <section
-          aria-label="Mẹo xem đúng con số thực tế"
-          className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-        >
-          <div className="flex items-start gap-3">
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-800 ring-1 ring-inset ring-teal-200"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 16v-4" />
-                <path d="M12 8h.01" />
-              </svg>
-            </span>
-            <p className="min-w-0 flex-1 text-base leading-relaxed text-slate-700">
-              <span className="font-bold text-slate-900">Mẹo lấy số chính xác:</span>{" "}
-              Bạn mở <span className="font-semibold text-slate-900">tin nhắn ngân hàng</span>{" "}
-              để xem số tiền thực sự đã về tài khoản, và mở{" "}
-              <span className="font-semibold text-slate-900">màn hình lịch trả trong app</span>{" "}
-              để xem ngày hẹn cùng số tiền họ yêu cầu đóng.
-            </p>
-          </div>
-        </section>
-
-        {/* Nút mở nhanh hướng dẫn khoá quyền nếu người dùng đang lo lắng ngay */}
-        <div className="space-y-3">
+      <div className={showFormContent ? "space-y-4" : "hidden"}>
+        {/* Nút mở nhanh hướng dẫn khoá quyền */}
+        <div className="space-y-2.5">
           <button
             type="button"
             aria-expanded={showQuickLockOnForm}
             onClick={() => setShowQuickLockOnForm((prev) => !prev)}
-            className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/85 px-4 py-3 text-left text-base font-semibold text-amber-950 shadow-sm transition hover:bg-amber-100/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+            className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-2.5 text-left text-sm font-semibold text-amber-950 transition hover:bg-amber-100/80"
           >
-            <span>
-              Đang lo app đọc Danh bạ hoặc Ảnh? Xem ngay cách khoá quyền trên máy
-            </span>
+            <span>Đang lo app đọc Danh bạ / Ảnh? Xem cách khoá quyền ngay</span>
             <span aria-hidden="true" className="shrink-0 font-bold">
               {showQuickLockOnForm ? "Ẩn ↑" : "Mở ↓"}
             </span>
@@ -262,25 +272,68 @@ export default function AftercarePage() {
           {showQuickLockOnForm ? <DataLockGuide /> : null}
         </div>
 
-        {/* Khu vực chọn nhanh 3 mẫu thử đối chứng */}
-        <section
-          aria-labelledby="sample-presets-heading"
-          className="space-y-3.5 rounded-2xl border border-teal-200 bg-teal-50/70 p-4 sm:p-5"
-        >
-          <div className="space-y-1">
-            <h2
-              id="sample-presets-heading"
-              className="text-lg font-bold leading-snug text-slate-900"
-            >
-              Điền nhanh tình huống mẫu để xem thử
-            </h2>
-            <p className="text-base leading-relaxed text-slate-700">
-              Chạm vào 1 trong 3 mẫu dưới đây để đối chiếu cả trường hợp vay ngoài
-              áp trần dân sự lẫn khoản vay tại tổ chức tín dụng có giấy phép:
-            </p>
-          </div>
+        {/* Nút tải hợp đồng (ảnh / PDF / Word) để tự điền toàn bộ form */}
+        <input
+          ref={contractFileInputRef}
+          type="file"
+          accept={LOAN_FILE_ACCEPT}
+          onChange={(e) => {
+            void handleUploadContract(e);
+          }}
+          className="sr-only"
+          aria-label="Tải ảnh, PDF hoặc Word hợp đồng để điền tự động toàn bộ form"
+        />
 
-          <div className="space-y-2.5">
+        <div className="space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => contractFileInputRef.current?.click()}
+            className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-teal-800 active:bg-teal-900 disabled:opacity-60"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 shrink-0"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span>Tải hợp đồng (ảnh / PDF / Word) để tự điền</span>
+          </button>
+          <p className="text-center text-xs text-slate-500">
+            Tự điền tên bên cho vay, tiền thực nhận và lịch trả · Không lưu tệp gốc
+          </p>
+          {uploadedFileName ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center justify-between gap-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+            >
+              <span className="truncate">Đã điền từ: {uploadedFileName}</span>
+              <button
+                type="button"
+                onClick={handleClearForm}
+                className="shrink-0 font-semibold text-teal-700 underline"
+              >
+                Xoá
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* 3 nút mẫu thử gọn 1 hàng */}
+        <div className="space-y-2">
+          <p className="px-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Hoặc điền nhanh mẫu thử
+          </p>
+          <div className="grid grid-cols-3 gap-2">
             {SAMPLE_PRESETS.map((preset) => {
               const isSelected = activeSampleId === preset.id;
               return (
@@ -289,29 +342,17 @@ export default function AftercarePage() {
                   type="button"
                   disabled={isBusy}
                   onClick={() => void handleLoadSample(preset.id)}
-                  className={`flex min-h-[56px] w-full flex-col items-start gap-1.5 rounded-2xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:opacity-60 ${
+                  className={`min-h-[44px] rounded-xl px-2 py-2 text-xs font-semibold transition disabled:opacity-60 ${
                     isSelected
-                      ? "border-2 border-teal-700 bg-white shadow-sm"
-                      : "border-teal-200/90 bg-white/95 hover:border-teal-500 hover:bg-white"
+                      ? "bg-teal-700 text-white shadow-sm"
+                      : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-teal-50"
                   }`}
                 >
-                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                    <span className="text-base font-bold text-slate-900">
-                      {preset.title}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-base font-semibold ${
-                        preset.badgeTone === "licensed"
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-950"
-                          : "border-amber-300 bg-amber-50 text-amber-950"
-                      }`}
-                    >
-                      {preset.badge}
-                    </span>
-                  </div>
-                  <span className="text-base leading-relaxed text-slate-700">
-                    {preset.summary}
-                  </span>
+                  {preset.id === "xanhcash"
+                    ? "XanhCash"
+                    : preset.id === "gop_ngay"
+                      ? "Góp ngày"
+                      : "Cty Tài chính"}
                 </button>
               );
             })}
@@ -321,26 +362,19 @@ export default function AftercarePage() {
             <div
               role="status"
               aria-live="polite"
-              className="space-y-2.5 rounded-xl border border-teal-300 bg-white p-3.5"
+              className="flex items-center justify-between gap-2 rounded-xl bg-teal-50 px-3 py-2 text-xs font-medium text-teal-950"
             >
-              <p className="text-base font-medium leading-relaxed text-teal-950">
-                Đã điền sẵn <span className="font-bold">{activePreset.title}</span>.
-                Bạn kiểm tra các ô bên dưới rồi bấm nút{" "}
-                <span className="font-bold">
-                  &ldquo;Tách khoản nợ &amp; xem việc cần làm&rdquo;
-                </span>{" "}
-                ở cuối trang nhé.
-              </p>
+              <span>Đã điền mẫu {activePreset.title}</span>
               <button
                 type="button"
                 onClick={handleClearForm}
-                className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-base font-semibold text-slate-800 transition hover:bg-slate-100 active:bg-slate-200"
+                className="shrink-0 font-semibold text-teal-700 underline"
               >
-                Xoá mẫu để tự nhập khoản vay của tôi
+                Xoá mẫu
               </button>
             </div>
           ) : null}
-        </section>
+        </div>
 
         <ConfirmForm
           key={formResetKey}
