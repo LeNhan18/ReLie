@@ -15,19 +15,24 @@ import {
   type LoanTerms,
 } from "@/lib/api";
 import { PermissionGuide } from "./PermissionGuide";
-import { resizeImageToJpegBlob } from "./resizeImage";
+import {
+  classifySelectedFile,
+  LOAN_FILE_ACCEPT,
+  prepareLoanUpload,
+  type PreparedUpload,
+} from "./uploadFile";
 
 type Step = "choose" | "confirm" | "result";
-type InputMode = "image" | "text";
+type InputMode = "file" | "text";
 type SampleId = "xanhcash" | "gop_ngay" | "cty_tai_chinh_a";
 
 type RetryExtractTarget =
   | { kind: "sample"; sampleId: SampleId }
-  | { kind: "blob"; blob: Blob }
+  | { kind: "file"; upload: PreparedUpload }
   | { kind: "text"; text: string }
   | { kind: "pick_file" };
 
-type UnreadableSource = "image" | "text" | null;
+type UnreadableSource = "image" | "document" | "text" | null;
 
 type SampleScenario = {
   id: SampleId;
@@ -90,25 +95,22 @@ function getHeaderMeta(step: Step): {
 } {
   if (step === "choose") {
     return {
-      badge: "Bước 1 / 3 · Kiểm tra an toàn trước khi vay",
-      title: "Kiểm tra khoản vay trước khi ký",
-      subtitle:
-        "Gửi ảnh chụp hợp đồng, dán tin nhắn mời vay hoặc nhập số liệu để biết chi phí thật. Ảnh chỉ xử lý ngay để đọc chữ, không lưu ảnh gốc.",
+      badge: "Bước 1 / 3",
+      title: "Kiểm tra khoản vay",
+      subtitle: "Tải ảnh, PDF/Word hoặc dán tin nhắn để xem lãi thật.",
     };
   }
   if (step === "confirm") {
     return {
-      badge: "Bước 2 / 3 · Đối chiếu con số thực tế",
-      title: "Kiểm tra lại các con số trước khi tính",
-      subtitle:
-        "Bạn đối chiếu kỹ tiền thực nhận về tay và lịch phải đóng với hợp đồng hoặc lời người tư vấn, sửa lại nếu chưa khớp nhé.",
+      badge: "Bước 2 / 3",
+      title: "Xác nhận con số",
+      subtitle: "Đối chiếu tiền thực nhận và lịch trả trước khi tính.",
     };
   }
   return {
-    badge: "Bước 3 / 3 · Chi phí thật & đối chiếu quy định",
-    title: "Kết quả kiểm tra khoản vay",
-    subtitle:
-      "Bạn xem kỹ chi phí thực tế quy năm, kịch bản gia hạn và các dấu hiệu dưới đây trước khi đưa ra quyết định nhé.",
+    badge: "Bước 3 / 3",
+    title: "Kết quả kiểm tra",
+    subtitle: "Chi phí thực tế và các dấu hiệu cần lưu ý.",
   };
 }
 
@@ -133,73 +135,17 @@ function LoanStepProgress({ currentStep }: { currentStep: Step }) {
   const activeIdx = getStepIndex(currentStep);
 
   return (
-    <nav
-      aria-label="Các bước kiểm tra khoản vay"
-      className="rounded-2xl border border-teal-200/80 bg-white p-4 shadow-sm"
-    >
-      <div aria-hidden="true" className="grid grid-cols-3 gap-2">
-        {STEP_ITEMS.map((item, idx) => {
-          const isReached = idx <= activeIdx;
-          return (
-            <span
-              key={item.id}
-              className={`h-2 rounded-full transition-colors ${
-                isReached ? "bg-teal-700" : "bg-slate-200"
-              }`}
-            />
-          );
-        })}
-      </div>
-
-      <ol className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {STEP_ITEMS.map((item, idx) => {
-          const isCurrent = idx === activeIdx;
-          const isDone = idx < activeIdx;
-
-          return (
-            <li
-              key={item.id}
-              aria-current={isCurrent ? "step" : undefined}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-base transition ${
-                isCurrent
-                  ? "border border-teal-300 bg-teal-50/90 font-bold text-teal-950"
-                  : isDone
-                    ? "border border-emerald-200 bg-emerald-50/60 font-semibold text-emerald-950"
-                    : "border border-transparent bg-slate-50/80 font-medium text-slate-600"
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-base font-bold ${
-                  isCurrent
-                    ? "bg-teal-700 text-white"
-                    : isDone
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {isDone ? (
-                  <svg
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.3a1 1 0 0 1-1.42 0l-3.75-3.775a1 1 0 1 1 1.42-1.41l3.04 3.06 6.54-6.585a1 1 0 0 1 1.414-.004Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                ) : (
-                  idx + 1
-                )}
-              </span>
-              <span className="leading-snug">{item.label}</span>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
+    <div aria-label="Tiến độ kiểm tra" className="grid grid-cols-3 gap-1.5">
+      {STEP_ITEMS.map((item, idx) => (
+        <div
+          key={item.id}
+          aria-current={idx === activeIdx ? "step" : undefined}
+          className={`h-1.5 rounded-full transition-colors ${
+            idx <= activeIdx ? "bg-teal-700" : "bg-slate-200"
+          }`}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -208,7 +154,7 @@ export default function LoanPage() {
   const requestSeqRef = useRef(0);
 
   const [step, setStep] = useState<Step>("choose");
-  const [inputMode, setInputMode] = useState<InputMode>("image");
+  const [inputMode, setInputMode] = useState<InputMode>("file");
   const [contractText, setContractText] = useState<string>("");
   const [textInputError, setTextInputError] = useState<string | null>(null);
   const [formSessionKey, setFormSessionKey] = useState<number>(0);
@@ -278,29 +224,39 @@ export default function LoanPage() {
     scrollToTop();
   };
 
-  const runBlobExtract = async (blob: Blob): Promise<void> => {
+  const runFileExtract = async (upload: PreparedUpload): Promise<void> => {
     const reqId = requestSeqRef.current + 1;
     requestSeqRef.current = reqId;
 
-    setExtractLoadingTitle("Đang đọc thông tin trên ảnh hợp đồng...");
-    setExtractLoadingHint(
-      "Bạn đợi một chút nhé, ảnh chỉ xử lý tạm thời để đọc chữ và không lưu ảnh gốc.",
-    );
+    if (upload.mediaKind === "document") {
+      setExtractLoadingTitle(`Đang đọc nội dung tài liệu (${upload.filename})...`);
+      setExtractLoadingHint(
+        "Tệp PDF/Word chỉ được đọc tạm trong bộ nhớ để trích xuất điều khoản, không lưu tệp gốc.",
+      );
+    } else {
+      setExtractLoadingTitle("Đang đọc thông tin trên ảnh hợp đồng...");
+      setExtractLoadingHint(
+        "Bạn đợi một chút nhé, ảnh chỉ xử lý tạm thời để đọc chữ và không lưu ảnh gốc.",
+      );
+    }
     setExtractLoading(true);
     setExtractError(null);
     setUnreadableSource(null);
-    setRetryExtractTarget({ kind: "blob", blob });
+    setRetryExtractTarget({ kind: "file", upload });
     scrollToTop();
 
     try {
-      const response = await api.extract({ file: blob, filename: "contract.jpg" });
+      const response = await api.extract({
+        file: upload.file,
+        filename: upload.filename,
+      });
       if (reqId !== requestSeqRef.current) {
         return;
       }
       setRetryExtractTarget(null);
 
       if (isTermsCompletelyEmpty(response.terms)) {
-        setUnreadableSource("image");
+        setUnreadableSource(upload.mediaKind);
         return;
       }
 
@@ -312,7 +268,9 @@ export default function LoanPage() {
       setExtractError(
         err instanceof Error
           ? err.message
-          : "Chưa đọc được ảnh hợp đồng lúc này. Bạn thử lại nhé.",
+          : upload.mediaKind === "document"
+            ? "Chưa đọc được tệp tài liệu lúc này. Bạn thử lại hoặc dán nội dung chữ nhé."
+            : "Chưa đọc được ảnh hợp đồng lúc này. Bạn thử lại nhé.",
       );
     } finally {
       if (reqId === requestSeqRef.current) {
@@ -333,10 +291,18 @@ export default function LoanPage() {
     const reqId = requestSeqRef.current + 1;
     requestSeqRef.current = reqId;
 
-    setExtractLoadingTitle("Đang thu gọn và làm rõ ảnh trên trình duyệt...");
-    setExtractLoadingHint(
-      "Ảnh được thu nhỏ ≤1600px ngay trên thiết bị của bạn, không lưu ảnh gốc.",
-    );
+    const detectedKind = classifySelectedFile(selectedFile);
+    if (detectedKind === "pdf" || detectedKind === "docx") {
+      setExtractLoadingTitle(`Đang kiểm tra tệp tài liệu (${selectedFile.name})...`);
+      setExtractLoadingHint(
+        "Tệp PDF/Word được gửi nguyên bản (không nén như ảnh) và không lưu tệp gốc.",
+      );
+    } else {
+      setExtractLoadingTitle("Đang thu gọn và làm rõ ảnh trên trình duyệt...");
+      setExtractLoadingHint(
+        "Ảnh được thu nhỏ ≤1600px ngay trên thiết bị của bạn, không lưu ảnh gốc.",
+      );
+    }
     setExtractLoading(true);
     setExtractError(null);
     setTextInputError(null);
@@ -344,9 +310,9 @@ export default function LoanPage() {
     setRetryExtractTarget(null);
     scrollToTop();
 
-    let resizedBlob: Blob;
+    let prepared: PreparedUpload;
     try {
-      resizedBlob = await resizeImageToJpegBlob(selectedFile);
+      prepared = await prepareLoanUpload(selectedFile);
     } catch (err) {
       if (reqId !== requestSeqRef.current) {
         return;
@@ -356,7 +322,7 @@ export default function LoanPage() {
       setExtractError(
         err instanceof Error
           ? err.message
-          : "Ảnh không hợp lệ hoặc không đọc được. Bạn chọn lại ảnh khác nhé.",
+          : "Tệp không hợp lệ hoặc chưa được hỗ trợ. Bạn chọn ảnh, PDF hoặc Word (.docx) nhé.",
       );
       return;
     }
@@ -365,7 +331,7 @@ export default function LoanPage() {
       return;
     }
 
-    await runBlobExtract(resizedBlob);
+    await runFileExtract(prepared);
   };
 
   const runTextExtract = async (rawText: string): Promise<void> => {
@@ -471,8 +437,8 @@ export default function LoanPage() {
       void handleSampleSelect(retryExtractTarget.sampleId);
       return;
     }
-    if (retryExtractTarget.kind === "blob") {
-      void runBlobExtract(retryExtractTarget.blob);
+    if (retryExtractTarget.kind === "file") {
+      void runFileExtract(retryExtractTarget.upload);
       return;
     }
     if (retryExtractTarget.kind === "text") {
@@ -540,12 +506,12 @@ export default function LoanPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={LOAN_FILE_ACCEPT}
         onChange={(e) => {
           void handleFileChange(e);
         }}
         className="sr-only"
-        aria-label="Chụp hoặc chọn ảnh hợp đồng hoặc màn hình app vay"
+        aria-label="Chọn ảnh, tệp PDF hoặc tệp Word (.docx) hợp đồng vay"
       />
 
       {step === "choose" ? (
@@ -557,9 +523,18 @@ export default function LoanPage() {
               {unreadableSource === "image" ? (
                 <ErrorState
                   title="Ảnh mờ hoặc chưa đọc được chữ"
-                  message="AnTâm chưa nhận diện được con số trên ảnh này. Bạn thử chụp lại gần hơn, đủ sáng, dán chữ điều khoản hoặc tự nhập số liệu nhé."
+                  message="AnTâm chưa nhận diện được con số trên ảnh này. Bạn thử chụp lại gần hơn, đủ sáng, tải tệp PDF/Word hoặc tự nhập số liệu nhé."
                   onRetry={openFilePicker}
-                  retryLabel="Chọn hoặc chụp lại ảnh khác"
+                  retryLabel="Chọn ảnh hoặc tệp khác"
+                  onBack={startManualEntry}
+                  backLabel="Tự nhập số liệu (khi chỉ nghe tư vấn miệng)"
+                />
+              ) : unreadableSource === "document" ? (
+                <ErrorState
+                  title="Chưa đọc được nội dung từ tệp tài liệu"
+                  message="Tệp PDF có thể là bản scan dạng ảnh, bị đặt mật khẩu hoặc chưa có rõ số tiền/lịch trả. Bạn thử chụp ảnh màn hình từng trang chính, dán đoạn chữ hoặc tự nhập số liệu nhé."
+                  onRetry={openFilePicker}
+                  retryLabel="Chọn tệp hoặc ảnh khác"
                   onBack={startManualEntry}
                   backLabel="Tự nhập số liệu (khi chỉ nghe tư vấn miệng)"
                 />
@@ -623,17 +598,17 @@ export default function LoanPage() {
                   className="grid grid-cols-1 gap-2 rounded-2xl bg-slate-100 p-1.5 min-[360px]:grid-cols-2"
                 >
                   <button
-                    id="tab-input-image"
+                    id="tab-input-file"
                     type="button"
                     role="tab"
-                    aria-selected={inputMode === "image"}
-                    aria-controls="panel-input-image"
+                    aria-selected={inputMode === "file"}
+                    aria-controls="panel-input-file"
                     onClick={() => {
-                      setInputMode("image");
+                      setInputMode("file");
                       setTextInputError(null);
                     }}
                     className={`inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-base font-semibold transition ${
-                      inputMode === "image"
+                      inputMode === "file"
                         ? "bg-teal-700 text-white shadow-sm"
                         : "bg-transparent text-slate-700 hover:bg-white/70 hover:text-slate-900"
                     }`}
@@ -648,10 +623,11 @@ export default function LoanPage() {
                       strokeLinejoin="round"
                       className="h-5 w-5 shrink-0"
                     >
-                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                      <circle cx="12" cy="13" r="3" />
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
-                    <span>Ảnh hợp đồng / app</span>
+                    <span>Tải ảnh / PDF / Word</span>
                   </button>
 
                   <button
@@ -687,11 +663,11 @@ export default function LoanPage() {
                   </button>
                 </div>
 
-                {inputMode === "image" ? (
+                {inputMode === "file" ? (
                   <div
-                    id="panel-input-image"
+                    id="panel-input-file"
                     role="tabpanel"
-                    aria-labelledby="tab-input-image"
+                    aria-labelledby="tab-input-file"
                     className="space-y-4 pt-1"
                   >
                     <button
@@ -709,26 +685,16 @@ export default function LoanPage() {
                         strokeLinejoin="round"
                         className="h-5 w-5 shrink-0"
                       >
-                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                        <circle cx="12" cy="13" r="3" />
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
                       </svg>
-                      <span>Chụp hoặc chọn ảnh hợp đồng / màn hình app</span>
+                      <span>Chọn ảnh, PDF hoặc file Word (.docx)</span>
                     </button>
 
-                    <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-3.5 text-base leading-relaxed text-slate-700">
-                      <p className="font-semibold text-teal-950">
-                        Mẹo chụp để đọc chuẩn ngay lần đầu:
-                      </p>
-                      <ul className="mt-1.5 list-disc space-y-1 pl-5">
-                        <li>
-                          Chụp rõ phần <strong>tiền thực nhận</strong>,{" "}
-                          <strong>tổng phải trả</strong>, lịch đóng và các khoản phí.
-                        </li>
-                        <li>
-                          Bạn có thể lấy ngón tay hoặc mảnh giấy che số CCCD cá nhân trước khi chụp.
-                        </li>
-                      </ul>
-                    </div>
+                    <p className="text-center text-sm text-slate-500">
+                      Hỗ trợ ảnh chụp, PDF (≤10 trang), Word (.docx) · Tối đa 4 MB · Không lưu tệp gốc
+                    </p>
                   </div>
                 ) : (
                   <div

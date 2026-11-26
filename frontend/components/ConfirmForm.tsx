@@ -610,118 +610,116 @@ export function ConfirmForm({
         </button>
       </div>
 
-      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">
-            5. Thông tin thêm (nếu bạn biết)
-          </h3>
-          <p className="mt-1 text-sm text-slate-600">
-            Không bắt buộc — nếu không rõ bạn có thể để trống.
-          </p>
-        </div>
+      <details
+        open={
+          isLow("rate_stated_pct_year") ||
+          isLow("extension_fee") ||
+          isLow("late_penalty_pct_per_day")
+        }
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <summary className="cursor-pointer select-none text-base font-bold text-slate-900">
+          Tuỳ chọn thêm: lãi suất, phí gia hạn &amp; dấu hiệu đi kèm
+        </summary>
 
-        <div>
-          <label
-            htmlFor="cf-rate-year"
-            className="mb-1.5 block text-base font-medium text-slate-900"
-          >
-            Lãi suất ghi trên hợp đồng (%/năm)
-          </label>
-          <input
-            id="cf-rate-year"
-            type="text"
-            inputMode="decimal"
-            value={rateStatedPctYear}
-            onChange={(e) => setRateStatedPctYear(e.target.value)}
-            placeholder="Để trống nếu không rõ (nhập 0 nếu ghi 0%)"
-            className={inputClass(isLow("rate_stated_pct_year"), true)}
-          />
-          {isLow("rate_stated_pct_year") ? (
-            <p className="mt-1.5 text-sm font-medium text-amber-900">
-              Chữ hơi mờ — bạn kiểm tra kỹ ô này nhé
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label
-            htmlFor="cf-extension-fee"
-            className="mb-1.5 block text-base font-medium text-slate-900"
-          >
-            Phí mỗi lần gia hạn (VND)
-          </label>
-          <input
-            id="cf-extension-fee"
-            type="text"
-            inputMode="numeric"
-            value={extensionFee}
-            onChange={(e) => setExtensionFee(sanitizeDigits(e.target.value))}
-            placeholder="Để trống nếu không có"
-            className={inputClass(isLow("extension_fee"), true)}
-          />
-          {previewExtFee !== null && previewExtFee > 0 ? (
-            <p className="mt-1.5 text-sm text-teal-800">
-              Số tiền đang nhập:{" "}
-              <span className="font-bold tabular-nums">{formatVnd(previewExtFee)}</span>
-            </p>
-          ) : null}
-          {isLow("extension_fee") ? (
-            <p className="mt-1.5 text-sm font-medium text-amber-900">
-              Chữ hơi mờ — bạn kiểm tra kỹ ô này nhé
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label
-            htmlFor="cf-late-penalty"
-            className="mb-1.5 block text-base font-medium text-slate-900"
-          >
-            Phạt quá hạn mỗi ngày (%/ngày)
-          </label>
-          <input
-            id="cf-late-penalty"
-            type="text"
-            inputMode="decimal"
-            value={latePenaltyPctPerDay}
-            onChange={(e) => setLatePenaltyPctPerDay(e.target.value)}
-            placeholder="Ví dụ: 1 hoặc 0,5"
-            className={inputClass(isLow("late_penalty_pct_per_day"), true)}
-          />
-          {isLow("late_penalty_pct_per_day") ? (
-            <p className="mt-1.5 text-sm font-medium text-amber-900">
-              Chữ hơi mờ — bạn kiểm tra kỹ ô này nhé
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-900">
-          6. Dấu hiệu đi kèm (chạm để đánh dấu nếu có)
-        </h3>
-
-        <div className="space-y-2.5">
-          {flagItems.map((flag) => (
+        <div className="mt-4 space-y-4">
+          <div>
             <label
-              key={flag.id}
-              className={`flex min-h-[52px] cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-base leading-relaxed transition ${
-                flag.checked
-                  ? "border-teal-600 bg-teal-50/70 font-medium text-teal-950"
-                  : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
-              }`}
+              htmlFor="cf-rate-year"
+              className="mb-1.5 block text-sm font-semibold text-slate-800"
             >
-              <input
-                type="checkbox"
-                checked={flag.checked}
-                onChange={(e) => flag.onChange(e.target.checked)}
-                className="h-5 w-5 shrink-0 rounded accent-teal-700"
-              />
-              <span>{flag.label}</span>
+              Lãi suất ghi trên hợp đồng (%/năm)
             </label>
-          ))}
+            <input
+              id="cf-rate-year"
+              type="text"
+              inputMode="decimal"
+              value={rateStatedPctYear}
+              onChange={(e) => setRateStatedPctYear(e.target.value)}
+              placeholder="Để trống nếu không rõ (nhập 0 nếu ghi 0%)"
+              className={inputClass(isLow("rate_stated_pct_year"), true)}
+            />
+            {isLow("rate_stated_pct_year") ? (
+              <p className="mt-1 text-xs font-medium text-amber-900">
+                Chữ hơi mờ — kiểm tra lại ô này
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label
+              htmlFor="cf-extension-fee"
+              className="mb-1.5 block text-sm font-semibold text-slate-800"
+            >
+              Phí mỗi lần gia hạn (VND)
+            </label>
+            <input
+              id="cf-extension-fee"
+              type="text"
+              inputMode="numeric"
+              value={extensionFee}
+              onChange={(e) => setExtensionFee(sanitizeDigits(e.target.value))}
+              placeholder="Để trống nếu không có"
+              className={inputClass(isLow("extension_fee"), true)}
+            />
+            {previewExtFee !== null && previewExtFee > 0 ? (
+              <p className="mt-1 text-xs font-semibold text-teal-800 tabular-nums">
+                {formatVnd(previewExtFee)}
+              </p>
+            ) : null}
+            {isLow("extension_fee") ? (
+              <p className="mt-1 text-xs font-medium text-amber-900">
+                Chữ hơi mờ — kiểm tra lại ô này
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label
+              htmlFor="cf-late-penalty"
+              className="mb-1.5 block text-sm font-semibold text-slate-800"
+            >
+              Phạt quá hạn mỗi ngày (%/ngày)
+            </label>
+            <input
+              id="cf-late-penalty"
+              type="text"
+              inputMode="decimal"
+              value={latePenaltyPctPerDay}
+              onChange={(e) => setLatePenaltyPctPerDay(e.target.value)}
+              placeholder="Ví dụ: 1 hoặc 0,5"
+              className={inputClass(isLow("late_penalty_pct_per_day"), true)}
+            />
+            {isLow("late_penalty_pct_per_day") ? (
+              <p className="mt-1 text-xs font-medium text-amber-900">
+                Chữ hơi mờ — kiểm tra lại ô này
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2 border-t border-slate-100 pt-3">
+            <p className="text-sm font-semibold text-slate-800">Dấu hiệu đi kèm</p>
+            {flagItems.map((flag) => (
+              <label
+                key={flag.id}
+                className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm transition ${
+                  flag.checked
+                    ? "border-teal-600 bg-teal-50/70 font-medium text-teal-950"
+                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={flag.checked}
+                  onChange={(e) => flag.onChange(e.target.checked)}
+                  className="h-4 w-4 shrink-0 rounded accent-teal-700"
+                />
+                <span>{flag.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      </details>
 
       {validationError ? (
         <div

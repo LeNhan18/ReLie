@@ -16,27 +16,13 @@ export type PageHeaderProps = {
 };
 
 function getRouteImage(pathname: string | null): string | undefined {
-  if (!pathname) {
-    return undefined;
-  }
-  if (pathname === "/need" || pathname.startsWith("/need/")) {
-    return "/images/card-need.jpg";
-  }
-  if (pathname === "/loan" || pathname.startsWith("/loan/")) {
-    return "/images/card-loan.jpg";
-  }
-  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) {
-    return "/images/card-aftercare.jpg";
-  }
-  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) {
-    return "/images/card-harassment.jpg";
-  }
-  if (pathname === "/plan" || pathname.startsWith("/plan/")) {
-    return "/images/card-plan.jpg";
-  }
-  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) {
-    return "/images/hero-antam.jpg";
-  }
+  if (!pathname) return undefined;
+  if (pathname === "/need" || pathname.startsWith("/need/")) return "/images/card-need.jpg";
+  if (pathname === "/loan" || pathname.startsWith("/loan/")) return "/images/card-loan.jpg";
+  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) return "/images/card-aftercare.jpg";
+  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) return "/images/card-harassment.jpg";
+  if (pathname === "/plan" || pathname.startsWith("/plan/")) return "/images/card-plan.jpg";
+  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) return "/images/hero-antam.jpg";
   return undefined;
 }
 
@@ -45,7 +31,7 @@ export function PageHeader({
   subtitle,
   badge,
   backHref,
-  backLabel = "Về trang chủ",
+  backLabel = "Trang chủ",
   rightSlot,
   imageSrc,
   imageAlt,
@@ -60,7 +46,7 @@ export function PageHeader({
           {backHref ? (
             <Link
               href={backHref}
-              className="inline-flex min-h-[48px] items-center gap-1.5 rounded-xl px-2.5 py-2 -ml-2 text-base font-semibold text-teal-800 transition hover:bg-teal-50 hover:text-teal-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 active:bg-teal-100"
+              className="-ml-2 inline-flex min-h-[44px] items-center gap-1 rounded-xl px-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200/60 hover:text-slate-900"
             >
               <svg
                 aria-hidden="true"
@@ -84,31 +70,28 @@ export function PageHeader({
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-teal-200/70 bg-gradient-to-br from-white via-white to-teal-50/70 p-4 sm:p-5 shadow-sm">
-        <div className="flex items-start justify-between gap-3.5">
-          <div className="min-w-0 flex-1 space-y-2">
-            {badge ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-teal-600" />
-                {badge}
-              </span>
-            ) : null}
+      <div className="flex items-center gap-3.5">
+        {resolvedImageSrc ? (
+          <img
+            src={resolvedImageSrc}
+            alt={imageAlt ?? title}
+            className="h-14 w-14 shrink-0 rounded-2xl object-cover shadow-sm ring-1 ring-black/5"
+          />
+        ) : null}
 
-            <h1 className="text-2xl font-bold leading-snug tracking-tight text-slate-900">
-              {title}
-            </h1>
-
-            {subtitle ? (
-              <p className="text-base leading-relaxed text-slate-600">{subtitle}</p>
-            ) : null}
-          </div>
-
-          {resolvedImageSrc ? (
-            <img
-              src={resolvedImageSrc}
-              alt={imageAlt ?? title}
-              className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-sm ring-1 ring-black/5 sm:h-24 sm:w-24"
-            />
+        <div className="min-w-0 flex-1">
+          {badge ? (
+            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+              {badge}
+            </p>
+          ) : null}
+          <h1 className="text-xl font-bold leading-snug tracking-tight text-slate-900">
+            {title}
+          </h1>
+          {subtitle ? (
+            <p className="mt-0.5 line-clamp-2 text-sm leading-relaxed text-slate-500">
+              {subtitle}
+            </p>
           ) : null}
         </div>
       </div>

@@ -2,50 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Giao diện thân thiện cho người lao động & người lớn tuổi: chữ tối thiểu 16px, nút chạm ≥48px */
+/* Cỡ chữ dễ đọc cho mọi lứa tuổi, giữ khoảng thở gọn gàng */
 html {
-  font-size: 17px;
-  -webkit-text-size-adjust: 100%;
+  font-size: 16px;
   scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background-color: #f8fafc;
-  background-image: radial-gradient(120% 420px at 50% 0%, rgba(20, 184, 166, 0.09) 0%, rgba(248, 250, 252, 0) 75%);
-  background-repeat: no-repeat;
+  background-color: #f5f7f9;
   color: #0f172a;
-  overflow-x: clip;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .tabular-nums,
 [data-numeric="true"] {
   font-variant-numeric: tabular-nums;
-}
-
-@layer base {
-  a,
-  button,
-  input,
-  select,
-  textarea {
-    transition-property: color, background-color, border-color, box-shadow, transform, opacity;
-    transition-duration: 150ms;
-    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  :focus-visible {
-    outline: 2px solid #0f766e;
-    outline-offset: 2px;
-  }
-}
-
-::selection {
-  background-color: #ccfbf1;
-  color: #134e4a;
 }
