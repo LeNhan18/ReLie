@@ -17,8 +17,16 @@ Giữ các biến cache/model `PADDLE_PDX_CACHE_HOME`, `HF_HOME`, `MODELSCOPE_CA
 
 Backend gọi `/chat/completions`, `max_tokens`, `response_format={"type":"json_object"}`, temperature 0. Chỉ nhận `finish_reason=stop`; phản hồi bị cắt ngắn hoặc schema sai không được dùng như kết quả hợp lệ. Hướng dẫn protocol: https://docs.vllm.ai/en/stable/serving/online_serving/openai_compatible_server/.
 
-Kiểm tra ngày 2026-11-26: endpoint server người dùng cung cấp trả `/models` có `qwen2.5-7b`; request JSON nhỏ đã trả thành công. Không lưu địa chỉ server cá nhân vào cấu hình mặc định trong repo. Smoke dữ liệu hư cấu không phải đo độ chính xác tài liệu khách hàng.
+Kiểm tra ngày 26/11/2026: endpoint người dùng cung cấp trả `/models` có `qwen2.5-7b` và hoàn tất JSON qua connector. Backend local đã được khởi động lại bằng lệnh bên dưới: `/health` trả `ok`, `/loan/extract` gọi model thật và trả HTTP 200 với nội dung cấu hình người dùng đã cung cấp, không dùng `sample_id`. Đây là kiểm tra đường gọi API, không phải kiểm thử trên hợp đồng vay thật hoặc xác minh OCR. 272 unit test và Ruff đạt; review bảo mật PASS. Không lưu địa chỉ server cá nhân vào cấu hình mặc định trong repo.
 
-Lần kiểm tra trích xuất khoản vay hư cấu qua connector chưa đạt: quá thời gian chờ 120 giây. Metrics của server lúc kiểm tra có một request chạy và một request chờ; chưa đủ căn cứ kết luận hàng đợi là nguyên nhân duy nhất. Chưa xác nhận end-to-end Paddle → Qwen thành công. Unit test 265 ca và lint đạt, review connector PASS.
+## Khởi động dự án local bằng AI thật
 
-Tiến trình backend cổng 8000 đang chạy trước thay đổi này chưa được khởi động lại: thao tác dừng/khởi động lại bị bộ kiểm duyệt tự động từ chối với lý do chung `blocked by policy`. Người vận hành cần khởi động lại backend bằng cấu hình trên để app dùng connector mới. Không ghi cấu hình vào `.env` trong phiên agent.
+Từ thư mục `backend/`, chạy bằng Python của môi trường đã cài Paddle:
+
+```powershell
+.\.venv\Scripts\python.exe -m antam.run_live --base-url http://<server>:8000/v1 --model qwen2.5-7b
+```
+
+Lệnh đặt `AI_MODE=paddle_vllm`, `LLM_PROVIDER=vllm` cho tiến trình trước khi nạp app; không đọc hoặc tạo `.env`. Có thể dùng `LLM_BASE_URL` đã đặt thay cho `--base-url`. Thiếu/sai URL thì dừng, không tự dùng mock/Groq/AWS. Backend lắng nghe `127.0.0.1:8000`, khớp địa chỉ API mặc định của frontend. Giữ một worker và tắt access log; cache model mặc định nằm trong `backend/.venv/model-cache`, biến cache tùy chỉnh có sẵn được giữ nguyên. Dùng `--port` khi cổng đã có tiến trình khác; cần cấu hình frontend tương ứng nếu đổi cổng.
+
+Kiểm tra thực tế ngày 26/11/2026: server do người dùng cung cấp đã trả danh sách có `qwen2.5-7b` và hoàn tất một lượt JSON qua connector backend. Đây là kiểm tra kết nối/LLM dựa trên cấu hình thật, chưa xác nhận OCR → trích xuất → đánh giá hợp đồng thật. Endpoint cá nhân không được đặt làm mặc định trong repo. Lời giải thích vẫn qua judge và có thể dùng template an toàn nếu model lỗi hoặc trả sai; template không được tính là model thành công.
