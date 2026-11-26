@@ -32,6 +32,10 @@ class Settings:
     paddle_device: str = os.getenv("PADDLE_DEVICE", "gpu:0")
     groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""), repr=False)
+    llm_provider: str = os.getenv("LLM_PROVIDER", "groq")
+    llm_base_url: str = os.getenv("LLM_BASE_URL", "")
+    llm_model_name: str = os.getenv("LLM_MODEL_NAME", "qwen2.5-7b")
+    llm_api_key: str = field(default_factory=lambda: os.getenv("LLM_API_KEY", ""), repr=False)
 
 
 settings = Settings()

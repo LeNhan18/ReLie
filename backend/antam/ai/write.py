@@ -5,6 +5,7 @@ from __future__ import annotations
 from antam.ai.bedrock_client import converse_json, load_prompt
 from antam.ai.groq_client import groq_json
 from antam.ai.judge import check, numbers_in
+from antam.ai.vllm_client import vllm_json
 from antam.config import settings
 
 
@@ -25,7 +26,9 @@ def explain(received: int, repaid: int, term_days: int, messages: list[str]) -> 
     if settings.ai_mode == "mock":
         return base
     try:
-        if settings.ai_mode == "paddle_groq":
+        if settings.ai_mode == "paddle_vllm":
+            out = vllm_json(load_prompt("write_explanation"), base, max_tokens=400)
+        elif settings.ai_mode == "paddle_groq":
             out = groq_json(load_prompt("write_explanation"), base, max_tokens=400)
         elif settings.ai_mode == "bedrock":
             out = converse_json(settings.bedrock_model_write, load_prompt("write_explanation"), base, max_tokens=400)

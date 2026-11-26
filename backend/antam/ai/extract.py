@@ -10,6 +10,7 @@ from antam.ai.bedrock_client import converse_json, load_prompt
 from antam.ai.errors import AIUnavailable
 from antam.ai.groq_client import groq_json
 from antam.ai.paddle_local import read_image
+from antam.ai.vllm_client import validate_configuration, vllm_json
 from antam.config import settings
 from antam.schemas.loan import LoanTerms
 
@@ -38,10 +39,12 @@ def extract_terms(image_bytes: bytes | None = None, text: str | None = None, sam
         raise AIUnavailable(
             "Chức năng đọc tài liệu thật chưa được bật. Bạn có thể chọn mẫu có sẵn hoặc tự nhập số liệu.",
         )
-    if settings.ai_mode not in {"bedrock", "paddle_groq"}:
+    if settings.ai_mode not in {"bedrock", "paddle_groq", "paddle_vllm"}:
         raise AIUnavailable("AI_MODE không được hỗ trợ; chưa gọi model.")
-    if settings.ai_mode == "paddle_groq":
-        if not settings.groq_api_key:
+    if settings.ai_mode in {"paddle_groq", "paddle_vllm"}:
+        if settings.ai_mode == "paddle_vllm":
+            validate_configuration()
+        elif not settings.groq_api_key:
             raise AIUnavailable("Chức năng đọc hợp đồng chưa sẵn sàng; vui lòng nhập số liệu hoặc thử lại sau.")
         if image_bytes is not None:
             text = read_image(image_bytes)
@@ -50,8 +53,12 @@ def extract_terms(image_bytes: bytes | None = None, text: str | None = None, sam
     system = load_prompt("extract_loan_terms")
     user_text = text or "Trích xuất điều khoản từ ảnh hợp đồng/màn hình app vay đính kèm."
     for _attempt in range(2):  # retry 1 lần nếu sai schema
-        raw = (groq_json(system, user_text) if settings.ai_mode == "paddle_groq" else
-               converse_json(settings.bedrock_model_extract, system, user_text, image_bytes))
+        if settings.ai_mode == "paddle_vllm":
+            raw = vllm_json(system, user_text)
+        elif settings.ai_mode == "paddle_groq":
+            raw = groq_json(system, user_text)
+        else:
+            raw = converse_json(settings.bedrock_model_extract, system, user_text, image_bytes)
         try:
             return LoanTerms.model_validate(raw)
         except ValidationError:
