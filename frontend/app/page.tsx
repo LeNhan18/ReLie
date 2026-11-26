@@ -34,15 +34,15 @@ const FEATURE_TILES = [
 export default function Home() {
   return (
     <div className="space-y-4">
-      {/* Thẻ Hero xanh ngọc tích hợp nút hành động chính */}
-      <section className="relative overflow-hidden rounded-2xl bg-[#0D5C57] p-5 text-white shadow-sm">
+      {/* Thẻ Hero màu thương hiệu #C61F2B tích hợp nút hành động chính */}
+      <section className="relative overflow-hidden rounded-2xl bg-[#C61F2B] p-5 text-white shadow-sm">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/[0.06]"
+          className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/[0.08]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-12 right-12 h-28 w-28 rounded-full bg-emerald-400/[0.08]"
+          className="pointer-events-none absolute -bottom-12 right-12 h-28 w-28 rounded-full bg-black/[0.08]"
         />
 
         <div className="relative">
