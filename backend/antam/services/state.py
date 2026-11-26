@@ -49,3 +49,24 @@ def classify_state(text: str) -> UserState:
                                (_NEGATED_PREFIX, _HYPOTHETICAL_PREFIX, _REPORTED_PREFIX)):
                         return state
     return "chua_biet"
+
+
+def classify_intent(text: str) -> Literal["tra_gop"] | None:
+    """Nhận ý định mua trả góp riêng, giữ nguyên năm trạng thái hiện có.
+
+    Ưu tiên hỗ trợ khoản nợ đã phát sinh trước nhu cầu mua mới.
+    Đây là hàm nội bộ, chưa mở rộng response API.
+    """
+    if classify_state(text) in {"bi_doi_no", "da_vay"}:
+        return None
+    for clause in re.split(r"[.!?;,\n]+|\b(?:nhưng|nhung)\b", text.casefold()):
+        normalized = _normalize(clause.replace("%", " phan tram "))
+        for match in re.finditer(r"\b(?:tra gop|mua truoc tra sau|gop 0 phan tram)\b", normalized):
+            prefix = normalized[:match.start()]
+            if any(rule.search(prefix) for rule in
+                   (_NEGATED_PREFIX, _HYPOTHETICAL_PREFIX, _REPORTED_PREFIX)):
+                continue
+            if re.search(r"\b(?:khong|chua) (?:muon|can|dinh|mua|chon|co nhu cau)\b", prefix):
+                continue
+            return "tra_gop"
+    return None

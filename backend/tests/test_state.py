@@ -2,7 +2,7 @@ import unicodedata
 
 import pytest
 
-from antam.services.state import classify_state
+from antam.services.state import classify_intent, classify_state
 
 
 @pytest.mark.parametrize("text, expected", [
@@ -53,3 +53,29 @@ def test_normalization_priority_and_negation(text, expected):
 
 def test_decomposed_vietnamese():
     assert classify_state(unicodedata.normalize("NFD", "Tôi bị đe doạ")) == "bi_doi_no"
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Mua điện thoại trả góp có nên không?", "tra_gop"),
+    ("TOI MUON MUA TRUOC TRA SAU", "tra_gop"),
+    ("Báo giá góp 0% có phí gì?", "tra_gop"),
+    ("Tôi phân vân mua xe trả góp", "tra_gop"),
+    ("Tôi không muốn mua trả góp", None),
+    ("Tôi không mua điện thoại trả góp", None),
+    ("Tôi không muốn mua xe trả góp", None),
+    ("Tôi chỉ góp 0 đồng", None),
+    ("Tôi muốn xem báo giá góp 0 phần trăm", "tra_gop"),
+    ("Tôi chưa cần trả góp", None),
+    ("Tôi nghe nói mua trước trả sau", None),
+    ("Tôi đang trả góp điện thoại", None),
+    ("Tôi bị đòi nợ nhưng muốn mua trả góp", None),
+    ("Tôi vay rồi và muốn mua trước trả sau", None),
+    ("", None),
+    ("Tôi muốn mua điện thoại bằng tiền dành dụm", None),
+])
+def test_installment_intent_preserves_existing_debt_priority(text, expected):
+    assert classify_intent(text) == expected
+
+
+def test_installment_intent_accepts_decomposed_vietnamese():
+    assert classify_intent(unicodedata.normalize("NFD", "Mua trả góp")) == "tra_gop"
