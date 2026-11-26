@@ -97,7 +97,7 @@ function getHeaderMeta(step: Step): {
     return {
       badge: "Bước 1 / 3",
       title: "Kiểm tra khoản vay",
-      subtitle: "Tải ảnh, PDF/Word hoặc dán tin nhắn để xem lãi thật.",
+      subtitle: "Tải ảnh chụp hợp đồng hoặc dán chữ để AI đọc và tính lãi thật.",
     };
   }
   if (step === "confirm") {
@@ -231,12 +231,12 @@ export default function LoanPage() {
     if (upload.mediaKind === "document") {
       setExtractLoadingTitle(`Đang đọc nội dung tài liệu (${upload.filename})...`);
       setExtractLoadingHint(
-        "Tệp PDF/Word chỉ được đọc tạm trong bộ nhớ để trích xuất điều khoản, không lưu tệp gốc.",
+        "AI đang trích xuất điều khoản (có thể mất 15–40 giây), không lưu tệp gốc.",
       );
     } else {
-      setExtractLoadingTitle("Đang đọc thông tin trên ảnh hợp đồng...");
+      setExtractLoadingTitle("AI đang đọc ảnh hợp đồng...");
       setExtractLoadingHint(
-        "Bạn đợi một chút nhé, ảnh chỉ xử lý tạm thời để đọc chữ và không lưu ảnh gốc.",
+        "PaddleOCR & AI đang phân tích điều khoản (có thể mất 15–40 giây), không lưu ảnh gốc.",
       );
     }
     setExtractLoading(true);
