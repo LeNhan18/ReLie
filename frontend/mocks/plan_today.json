@@ -1,0 +1,11 @@
+{
+  "spendable_today": 120000,
+  "days_until_payday": 10,
+  "shortfalls": [
+    {
+      "debt_label": "Tiền nhà tháng này",
+      "due": "2026-12-01",
+      "missing": 600000
+    }
+  ]
+}
