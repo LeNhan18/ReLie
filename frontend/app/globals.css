@@ -96,3 +96,37 @@ body {
     animation: none;
   }
 }
+
+/* Bản in / Xuất PDF chuẩn khổ A4 sạch sẽ, ẩn toàn bộ thanh điều hướng */
+@page {
+  size: A4 portrait;
+  margin: 18mm 18mm 18mm 22mm;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .antam-pdf-sheet,
+  .antam-pdf-sheet * {
+    visibility: visible;
+  }
+
+  .antam-pdf-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+}
