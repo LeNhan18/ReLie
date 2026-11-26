@@ -18,8 +18,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi">
-      <body className="flex min-h-screen flex-col pb-24 text-slate-900 antialiased">
+    <html lang="vi" suppressHydrationWarning>
+      <body
+        suppressHydrationWarning
+        className="flex min-h-screen flex-col pb-24 text-slate-900 antialiased"
+      >
         <AppHeader />
         <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4 sm:py-5">
           {children}
