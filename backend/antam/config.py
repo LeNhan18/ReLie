@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -27,6 +27,8 @@ class Settings:
     samples_dir: Path = Path(os.getenv("SAMPLES_DIR", str(_default_data_dir("samples"))))
     # AI_MODE=mock: trả JSON mẫu, không gọi Bedrock (dùng khi dựng UI và chạy test)
     ai_mode: str = os.getenv("AI_MODE", "mock")
+    loan_search_mode: str = os.getenv("LOAN_SEARCH_MODE", "tavily")
+    tavily_api_key: str = field(default_factory=lambda: os.getenv("TAVILY_API_KEY", ""), repr=False)
 
 
 settings = Settings()
