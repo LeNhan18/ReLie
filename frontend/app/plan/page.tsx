@@ -120,7 +120,7 @@ export default function PlanPage() {
   const [todayIso, setTodayIso] = useState<string>("");
   const [cashOnHand, setCashOnHand] = useState<string>("");
   const [nextPayday, setNextPayday] = useState<string>("");
-  const [avgDailySpend, setAvgDailySpend] = useState<string>("");
+  const [avgDailySpend, setAvgDailySpend] = useState<string>("100000");
   const [buffer, setBuffer] = useState<string>("0");
   const [fixedRows, setFixedRows] = useState<ObligationRow[]>([]);
   const [debtRows, setDebtRows] = useState<ObligationRow[]>([]);
@@ -187,7 +187,7 @@ export default function PlanPage() {
     setTodayIso(currentToday);
     setCashOnHand("");
     setNextPayday("");
-    setAvgDailySpend("");
+    setAvgDailySpend("100000");
     setBuffer("0");
     setFixedRows([]);
     setDebtRows([]);
@@ -382,13 +382,7 @@ export default function PlanPage() {
       return null;
     }
 
-    const parsedDaily = parseVndDigits(avgDailySpend);
-    if (parsedDaily === null) {
-      setValidationError(
-        "Bạn nhập mức chi sinh hoạt thiết yếu trung bình 1 ngày (nhập 0 nếu chưa tính) nhé.",
-      );
-      return null;
-    }
+    const parsedDaily = parseVndDigits(avgDailySpend) ?? 100_000;
 
     const trimmedBuffer = buffer.trim();
     const parsedBuffer = trimmedBuffer === "" ? 0 : parseVndDigits(trimmedBuffer);
@@ -670,75 +664,99 @@ export default function PlanPage() {
             </p>
           </div>
 
-          <div>
-            <label
-              htmlFor="plan-avg-daily"
-              className="mb-1.5 block text-base font-semibold text-slate-900"
-            >
-              3. Chi ăn uống, xăng xe thiết yếu trung bình 1 ngày (VND){" "}
-              <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="plan-avg-daily"
-              type="text"
-              inputMode="numeric"
-              disabled={loading}
-              value={avgDailySpend}
-              onChange={(e) => {
-                markEdited();
-                setAvgDailySpend(sanitizeDigits(e.target.value));
-              }}
-              placeholder="Ví dụ: 120000"
-              className={`${inputBaseClass} tabular-nums`}
-            />
-            {previewDaily !== null ? (
-              <p className="mt-1.5 text-base text-teal-800">
-                Đang nhập:{" "}
-                <span className="font-bold tabular-nums">
-                  {formatVnd(previewDaily)}
-                </span>
-                /ngày
-              </p>
-            ) : (
-              <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-                Dùng để dự báo xem tới ngày đóng nợ bạn có bị hụt tiền mặt hay không.
-              </p>
-            )}
-          </div>
+          <details className="rounded-xl bg-slate-50 px-3.5 py-2.5">
+            <summary className="cursor-pointer select-none text-sm font-semibold text-slate-700">
+              Tuỳ chỉnh mức sinh hoạt &amp; dự phòng (mặc định {formatVnd(previewDaily ?? 100_000)}/ngày)
+            </summary>
 
-          <div>
-            <label
-              htmlFor="plan-buffer"
-              className="mb-1.5 block text-base font-semibold text-slate-900"
-            >
-              4. Khoản dự phòng khẩn cấp muốn giữ lại (VND)
-            </label>
-            <input
-              id="plan-buffer"
-              type="text"
-              inputMode="numeric"
-              disabled={loading}
-              value={buffer}
-              onChange={(e) => {
-                markEdited();
-                setBuffer(sanitizeDigits(e.target.value));
-              }}
-              placeholder="Mặc định: 0"
-              className={`${inputBaseClass} tabular-nums`}
-            />
-            {previewBuffer !== null && previewBuffer > 0 ? (
-              <p className="mt-1.5 text-base text-teal-800">
-                Giữ riêng dự phòng:{" "}
-                <span className="font-bold tabular-nums">
-                  {formatVnd(previewBuffer)}
-                </span>
-              </p>
-            ) : (
-              <p className="mt-1.5 text-base leading-relaxed text-slate-600">
-                Tiền cất riêng phòng ốm đau hoặc hỏng xe bất ngờ (để 0 nếu chưa có).
-              </p>
-            )}
-          </div>
+            <div className="mt-3 space-y-3.5">
+              <div>
+                <p className="text-xs font-semibold text-slate-600">
+                  Mức ăn uống, xăng xe trung bình / ngày (dùng để cảnh báo hụt tiền)
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Tiết kiệm · 80k", value: "80000" },
+                    { label: "Phổ thông · 100k", value: "100000" },
+                    { label: "Gia đình · 180k", value: "180000" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        markEdited();
+                        setAvgDailySpend(opt.value);
+                      }}
+                      className={`min-h-[40px] rounded-lg px-2 text-xs font-semibold transition ${
+                        avgDailySpend === opt.value
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="plan-avg-daily"
+                  type="text"
+                  inputMode="numeric"
+                  disabled={loading}
+                  value={avgDailySpend}
+                  onChange={(e) => {
+                    markEdited();
+                    setAvgDailySpend(sanitizeDigits(e.target.value));
+                  }}
+                  placeholder="Hoặc nhập số khác (VND/ngày)"
+                  className={`mt-2 ${inputBaseClass} tabular-nums`}
+                />
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-slate-600">
+                  Khoản dự phòng khẩn cấp muốn cất riêng (tuỳ chọn)
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                  {[
+                    { label: "Không giữ (0đ)", value: "0" },
+                    { label: "200.000 đ", value: "200000" },
+                    { label: "500.000 đ", value: "500000" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        markEdited();
+                        setBuffer(opt.value);
+                      }}
+                      className={`min-h-[40px] rounded-lg px-2 text-xs font-semibold transition ${
+                        buffer === opt.value
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="plan-buffer"
+                  type="text"
+                  inputMode="numeric"
+                  disabled={loading}
+                  value={buffer}
+                  onChange={(e) => {
+                    markEdited();
+                    setBuffer(sanitizeDigits(e.target.value));
+                  }}
+                  placeholder="Mặc định: 0"
+                  className={`mt-2 ${inputBaseClass} tabular-nums`}
+                />
+              </div>
+            </div>
+          </details>
         </section>
 
         {/* Danh sách chi cố định sắp đóng */}
