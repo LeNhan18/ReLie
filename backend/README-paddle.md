@@ -2,6 +2,8 @@
 
 Mode `AI_MODE=paddle_groq` dùng `PaddleOCRVL(pipeline_version="v1.6")` từ package PaddleOCR chính thức. Model tương ứng là `PaddlePaddle/PaddleOCR-VL-1.6`, không thay bằng OCR thường hoặc gọi dịch vụ OCR có model không rõ phiên bản.
 
+Có thể thay Groq bằng Qwen trên server riêng với `AI_MODE=paddle_vllm`; xem `README-vllm.md`. Không cần Groq key ở mode này.
+
 Luồng ảnh: JPEG/PNG/WebP → ndarray BGR trong bộ nhớ → PaddleOCR-VL 1.6 → văn bản → Groq `openai/gpt-oss-120b` → kiểm tra schema `LoanTerms`. Luồng nhập chữ gọi Groq trực tiếp. Số tiền/lãi và cảnh báo vẫn do tool backend quyết định. Lời giải thích qua judge và fallback; fallback không được tính là LLM thật đã chạy thành công.
 
 Ảnh không được ghi ra file, log hoặc truyền sang Groq. Markdown OCR không được lưu/log nhưng nội dung chữ được gửi sang Groq; hiện chưa tự khử định danh. Bộ kiểm thử thực tế phải dùng tài liệu đã khử định danh và cấu hình Data Controls của nhà cung cấp phù hợp. Không gọi các hàm `print`, `save_to_json`, `save_to_markdown` của Paddle. Model và cache thư viện được tải khi khởi tạo lần đầu; đây là tài nguyên model, không phải cache hợp đồng người dùng.
@@ -49,6 +51,8 @@ $env:GROQ_MODEL = 'openai/gpt-oss-120b'
 ```
 
 Thiếu Groq key thì luồng trích xuất báo lỗi trước khi tải OCR; vẫn có thể chạy smoke Paddle độc lập. Các mẫu chọn bằng `sample_id` vẫn là mẫu có sẵn, không dùng chúng để chứng minh gọi model thật. `AI_MODE=mock` chỉ giữ cho unit test hoặc phiên phát triển dùng mẫu; mode chưa hỗ trợ bị từ chối, không tự gọi AWS.
+
+Trong mode mock, ảnh/văn bản mới nhận lỗi rõ ràng, không tự trả mẫu XanhCash. Chỉ request có `sample_id` rõ ràng mới đọc JSON mẫu. Khi phát triển trên nhiều worktree, phải chạy backend từ worktree chứa tích hợp mới; frontend đang mở không tự đổi mã backend của tiến trình đã chạy.
 
 Giới hạn hiện tại: mỗi ảnh tối đa 4MB ở API, 16 triệu pixel khi giải mã, một ảnh/một lượt, văn bản OCR tối đa 50.000 ký tự; mỗi worker chỉ suy luận một lượt để hạn chế tràn VRAM. PDF/Word trong API vẫn chờ chốt hợp đồng, không âm thầm coi PDF là ảnh. Paddle native không tự tạo website trực tuyến; hosting cần máy đủ tài nguyên và cấu hình riêng.
 

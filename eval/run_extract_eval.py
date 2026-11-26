@@ -10,8 +10,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from antam.ai.extract import extract_terms  # noqa: E402
-from antam.config import settings  # noqa: E402
+from antam.ai.extract import extract_terms
+from antam.ai.vllm_client import validate_configuration
+from antam.config import settings
 
 CONTRACTS = Path(__file__).parent / "contracts"
 FIELDS = ["lender_name", "principal_stated", "amount_received", "disbursed_date",
@@ -19,12 +20,14 @@ FIELDS = ["lender_name", "principal_stated", "amount_received", "disbursed_date"
 
 
 def main() -> None:
-    if settings.ai_mode not in {"bedrock", "paddle_groq"}:
+    if settings.ai_mode not in {"bedrock", "paddle_groq", "paddle_vllm"}:
         raise SystemExit("Không chạy eval thật với mock hoặc AI_MODE không được hỗ trợ; chưa gọi model.")
     if settings.ai_mode == "bedrock" and not settings.bedrock_model_extract:
         raise SystemExit("Chưa cấu hình model trích xuất; chưa gọi model và chưa tạo báo cáo.")
     if settings.ai_mode == "paddle_groq" and not settings.groq_api_key:
         raise SystemExit("Chưa cấu hình GROQ_API_KEY; chưa gọi model và chưa tạo báo cáo.")
+    if settings.ai_mode == "paddle_vllm":
+        validate_configuration()
     labels = sorted(CONTRACTS.glob("*.label.json"))
     if not labels:
         raise SystemExit("Chưa có bộ mẫu có nhãn; không tạo báo cáo rỗng như kết quả đánh giá thật.")

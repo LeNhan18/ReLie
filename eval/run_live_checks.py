@@ -40,7 +40,7 @@ def run_checks(scope: str) -> dict:
             "name": "live_ocr_llm", "status": "not_run", "ai_mode": settings.ai_mode,
             "detail": (
                 "Chưa chạy kiểm thử end-to-end OCR/LLM trong lệnh này. "
-                "Đã có mode paddle_groq: cần bộ cài/model PaddleOCR-VL 1.6 và GROQ_API_KEY. "
+                "Đã có mode paddle_groq hoặc paddle_vllm: cần model PaddleOCR-VL 1.6 và kết nối LLM tương ứng. "
                 "Kết quả mẫu hoặc template fallback không chứng minh model thật hoạt động."
             ),
         })

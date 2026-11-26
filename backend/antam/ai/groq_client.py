@@ -16,20 +16,32 @@ class _NoRedirect(HTTPRedirectHandler):
 def groq_json(system: str, text: str, max_tokens: int = 1500) -> dict:
     if not settings.groq_api_key:
         raise AIUnavailable("Chức năng hỗ trợ AI chưa sẵn sàng; vui lòng thử lại sau.")
+    return completion_json(
+        system, text, max_tokens, endpoint="https://api.groq.com/openai/v1/chat/completions",
+        model=settings.groq_model, api_key=settings.groq_api_key,
+    )
+
+
+def completion_json(system: str, text: str, max_tokens: int, *, endpoint: str,
+                    model: str, api_key: str = "", token_parameter: str = "max_completion_tokens",
+                    timeout: int = 30) -> dict:
+    """Transport dùng chung cho hai provider đã được backend cấu hình, không nhận URL từ request."""
     if len(text) > 50_000:
         raise AIUnavailable("Văn bản quá dài cho lượt trích xuất; vui lòng chia nhỏ tài liệu.")
     payload = {
-        "model": settings.groq_model, "temperature": 0, "max_completion_tokens": max_tokens,
+        "model": model, "temperature": 0, token_parameter: max_tokens,
         "response_format": {"type": "json_object"},
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": text}],
     }
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
     request = Request(
-        "https://api.groq.com/openai/v1/chat/completions", data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Bearer {settings.groq_api_key}", "Content-Type": "application/json"},
+        endpoint, data=json.dumps(payload).encode(), headers=headers,
         method="POST",
     )
     try:
-        with build_opener(_NoRedirect()).open(request, timeout=30) as response:
+        with build_opener(_NoRedirect()).open(request, timeout=timeout) as response:
             raw = response.read(500_001)
         if len(raw) > 500_000:
             raise AIUnavailable("Phản hồi LLM quá lớn.")
