@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import {
+  AftercareLockIcon,
+  HarassmentGuardIcon,
+  LoanScanIcon,
+  MascotShieldIcon,
+  NeedWalletIcon,
+  PlanPiggyIcon,
+} from "./AnimatedIcons";
 
 export type PageHeaderProps = {
   title: string;
@@ -15,15 +23,27 @@ export type PageHeaderProps = {
   imageAlt?: string;
 };
 
-function getRouteIconSrc(pathname: string | null): string | undefined {
-  if (!pathname) return undefined;
-  if (pathname === "/need" || pathname.startsWith("/need/")) return "/icons/02-can-tien-gap.png";
-  if (pathname === "/loan" || pathname.startsWith("/loan/")) return "/icons/03-kiem-tra-khoan-vay.png";
-  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) return "/icons/04-toi-da-lo-vay.png";
-  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) return "/icons/05-toi-bi-doi-no.png";
-  if (pathname === "/plan" || pathname.startsWith("/plan/")) return "/icons/06-hom-nay-tieu-gi.png";
-  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) return "/icons/01-logo-antam.png";
-  return undefined;
+function renderRouteCuteIcon(pathname: string | null): ReactNode {
+  if (!pathname) return null;
+  if (pathname === "/need" || pathname.startsWith("/need/")) {
+    return <NeedWalletIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/loan" || pathname.startsWith("/loan/")) {
+    return <LoanScanIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/aftercare" || pathname.startsWith("/aftercare/")) {
+    return <AftercareLockIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/harassment" || pathname.startsWith("/harassment/")) {
+    return <HarassmentGuardIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/plan" || pathname.startsWith("/plan/")) {
+    return <PlanPiggyIcon className="h-11 w-11" />;
+  }
+  if (pathname === "/privacy" || pathname.startsWith("/privacy/")) {
+    return <MascotShieldIcon className="h-11 w-11" />;
+  }
+  return null;
 }
 
 export function PageHeader({
@@ -33,11 +53,9 @@ export function PageHeader({
   backHref,
   backLabel = "Trang chủ",
   rightSlot,
-  imageSrc,
-  imageAlt,
 }: PageHeaderProps) {
   const pathname = usePathname();
-  const resolvedIconSrc = imageSrc ?? getRouteIconSrc(pathname);
+  const cuteIcon = renderRouteCuteIcon(pathname);
 
   return (
     <header className="space-y-2.5">
@@ -46,7 +64,7 @@ export function PageHeader({
           {backHref ? (
             <Link
               href={backHref}
-              className="-ml-2 inline-flex min-h-[40px] items-center gap-1 rounded-xl px-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200/60 hover:text-slate-900"
+              className="-ml-2 inline-flex min-h-[40px] items-center gap-1 rounded-xl px-2 text-sm font-semibold text-slate-600 transition hover:bg-teal-50 hover:text-teal-800"
             >
               <svg
                 aria-hidden="true"
@@ -71,13 +89,9 @@ export function PageHeader({
       ) : null}
 
       <div className="flex items-center gap-3">
-        {resolvedIconSrc ? (
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-200/80">
-            <img
-              src={resolvedIconSrc}
-              alt={imageAlt ?? title}
-              className="h-full w-full object-contain"
-            />
+        {cuteIcon ? (
+          <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-teal-50 p-1 ring-1 ring-teal-200/70">
+            {cuteIcon}
           </span>
         ) : null}
 
