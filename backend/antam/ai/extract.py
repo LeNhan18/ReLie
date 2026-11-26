@@ -23,8 +23,8 @@ class SampleNotFound(ValueError):
 
 
 def extract_terms(image_bytes: bytes | None = None, text: str | None = None, sample_id: str | None = None) -> LoanTerms:
-    if settings.ai_mode == "mock" or sample_id:
-        sid = sample_id or "xanhcash"
+    if sample_id:
+        sid = sample_id
         if not re.fullmatch(r"[a-z0-9_-]{1,64}", sid):
             raise InvalidSampleId("Mã mẫu không hợp lệ")
         path = settings.samples_dir / f"{sid}.terms.json"
@@ -34,6 +34,10 @@ def extract_terms(image_bytes: bytes | None = None, text: str | None = None, sam
             raise SampleNotFound("Không tìm thấy mẫu khoản vay") from exc
         return LoanTerms.model_validate_json(sample)
 
+    if settings.ai_mode == "mock":
+        raise AIUnavailable(
+            "Chức năng đọc tài liệu thật chưa được bật. Bạn có thể chọn mẫu có sẵn hoặc tự nhập số liệu.",
+        )
     if settings.ai_mode not in {"bedrock", "paddle_groq"}:
         raise AIUnavailable("AI_MODE không được hỗ trợ; chưa gọi model.")
     if settings.ai_mode == "paddle_groq":

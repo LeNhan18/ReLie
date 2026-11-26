@@ -50,6 +50,8 @@ $env:GROQ_MODEL = 'openai/gpt-oss-120b'
 
 Thiếu Groq key thì luồng trích xuất báo lỗi trước khi tải OCR; vẫn có thể chạy smoke Paddle độc lập. Các mẫu chọn bằng `sample_id` vẫn là mẫu có sẵn, không dùng chúng để chứng minh gọi model thật. `AI_MODE=mock` chỉ giữ cho unit test hoặc phiên phát triển dùng mẫu; mode chưa hỗ trợ bị từ chối, không tự gọi AWS.
 
+Trong mode mock, ảnh/văn bản mới nhận lỗi rõ ràng, không tự trả mẫu XanhCash. Chỉ request có `sample_id` rõ ràng mới đọc JSON mẫu. Khi phát triển trên nhiều worktree, phải chạy backend từ worktree chứa tích hợp mới; frontend đang mở không tự đổi mã backend của tiến trình đã chạy.
+
 Giới hạn hiện tại: mỗi ảnh tối đa 4MB ở API, 16 triệu pixel khi giải mã, một ảnh/một lượt, văn bản OCR tối đa 50.000 ký tự; mỗi worker chỉ suy luận một lượt để hạn chế tràn VRAM. PDF/Word trong API vẫn chờ chốt hợp đồng, không âm thầm coi PDF là ảnh. Paddle native không tự tạo website trực tuyến; hosting cần máy đủ tài nguyên và cấu hình riêng.
 
 Unit test dùng provider/transport giả để không tải model hoặc tiêu quota. Kết quả unit test không thay cho smoke Paddle, LLM thật hay end-to-end trên hosting.
