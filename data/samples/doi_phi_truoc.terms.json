@@ -1,0 +1,11 @@
+{
+  "_note": "MẪU HƯ CẤU",
+  "lender_name": {"value": "Bên cho vay qua tin nhắn (MẪU HƯ CẤU)", "confidence": 1.0},
+  "principal_stated": {"value": 5000000, "confidence": 1.0},
+  "amount_received": {"value": 5000000, "confidence": 0.55},
+  "disbursed_date": {"value": "2026-11-20", "confidence": 0.55},
+  "repayment_type": {"value": "one_time", "confidence": 1.0},
+  "schedule": [{"on": "2026-12-20", "amount": 5050000}],
+  "fees": [{"name": "Phí mở hồ sơ trước giải ngân", "amount": 300000, "confidence": 1.0}],
+  "requires_upfront_payment": true
+}

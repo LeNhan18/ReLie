@@ -45,6 +45,10 @@ def forecast(
 ) -> Forecast:
     if next_payday <= today:
         raise ValueError("Ngày lương tiếp theo phải sau hôm nay")
+    if min(cash_on_hand, avg_daily_spend, buffer) < 0:
+        raise ValueError("Tiền hiện có, chi tiêu mỗi ngày và khoản dự phòng không được âm")
+    if any(item.amount < 0 for item in [*debts, *fixed]):
+        raise ValueError("Số tiền trả nợ và chi cố định không được âm")
     days = (next_payday - today).days
     due_before = sum(d.amount for d in debts if today <= d.due < next_payday)
     fixed_before = sum(f.amount for f in fixed if today <= f.due < next_payday)

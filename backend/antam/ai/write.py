@@ -12,7 +12,10 @@ def _fmt_vnd(n: int) -> str:
 
 
 def template_explanation(received: int, repaid: int, term_days: int, messages: list[str]) -> str:
-    head = f"Bạn nhận {_fmt_vnd(received)} nhưng phải trả {_fmt_vnd(repaid)} sau {term_days} ngày."
+    head = (
+        f"Bạn nhận {_fmt_vnd(received)}. Tổng tiền phải trả là {_fmt_vnd(repaid)} "
+        f"trong kỳ hạn {term_days} ngày theo lịch trả đã xác nhận."
+    )
     return " ".join([head, *messages])
 
 
