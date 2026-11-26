@@ -39,8 +39,8 @@ def run_checks(scope: str) -> dict:
         checks.append({
             "name": "live_ocr_llm", "status": "not_run", "ai_mode": settings.ai_mode,
             "detail": (
-                "Chưa có tích hợp OCR/LLM miễn phí để kiểm tra trong phiên này. "
-                "Code hiện chỉ có Bedrock; không dùng AWS credentials. "
+                "Chưa chạy kiểm thử end-to-end OCR/LLM trong lệnh này. "
+                "Đã có mode paddle_groq: cần bộ cài/model PaddleOCR-VL 1.6 và GROQ_API_KEY. "
                 "Kết quả mẫu hoặc template fallback không chứng minh model thật hoạt động."
             ),
         })

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
+from antam.ai.errors import AIUnavailable, OCRInputError
 from antam.ai.extract import InvalidSampleId, SampleNotFound, extract_terms
 from antam.schemas.loan import Assessment, ConfirmedLoan
 from antam.services.assess import assess
@@ -24,9 +26,11 @@ async def extract(file: UploadFile | None = File(None), text: str | None = Form(
         if len(image) > MAX_IMAGE_BYTES:
             raise HTTPException(413, "Ảnh quá lớn, vui lòng chụp lại hoặc giảm kích thước")
     try:
-        terms = extract_terms(image_bytes=image, text=text, sample_id=sample_id)
+        terms = await run_in_threadpool(extract_terms, image_bytes=image, text=text, sample_id=sample_id)
     except InvalidSampleId as exc:
         raise HTTPException(422, str(exc)) from exc
+    except (AIUnavailable, OCRInputError) as exc:
+        raise HTTPException(422, str(exc)) from None
     except SampleNotFound as exc:
         if sample_id is None:
             raise

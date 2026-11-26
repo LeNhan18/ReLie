@@ -19,10 +19,12 @@ FIELDS = ["lender_name", "principal_stated", "amount_received", "disbursed_date"
 
 
 def main() -> None:
-    if settings.ai_mode != "bedrock":
+    if settings.ai_mode not in {"bedrock", "paddle_groq"}:
         raise SystemExit("Không chạy eval thật với mock hoặc AI_MODE không được hỗ trợ; chưa gọi model.")
-    if not settings.bedrock_model_extract:
+    if settings.ai_mode == "bedrock" and not settings.bedrock_model_extract:
         raise SystemExit("Chưa cấu hình model trích xuất; chưa gọi model và chưa tạo báo cáo.")
+    if settings.ai_mode == "paddle_groq" and not settings.groq_api_key:
+        raise SystemExit("Chưa cấu hình GROQ_API_KEY; chưa gọi model và chưa tạo báo cáo.")
     labels = sorted(CONTRACTS.glob("*.label.json"))
     if not labels:
         raise SystemExit("Chưa có bộ mẫu có nhãn; không tạo báo cáo rỗng như kết quả đánh giá thật.")

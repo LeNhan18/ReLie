@@ -29,6 +29,9 @@ class Settings:
     ai_mode: str = os.getenv("AI_MODE", "mock")
     loan_search_mode: str = os.getenv("LOAN_SEARCH_MODE", "tavily")
     tavily_api_key: str = field(default_factory=lambda: os.getenv("TAVILY_API_KEY", ""), repr=False)
+    paddle_device: str = os.getenv("PADDLE_DEVICE", "gpu:0")
+    groq_model: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    groq_api_key: str = field(default_factory=lambda: os.getenv("GROQ_API_KEY", ""), repr=False)
 
 
 settings = Settings()
