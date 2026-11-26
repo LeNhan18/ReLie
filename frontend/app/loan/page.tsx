@@ -95,25 +95,22 @@ function getHeaderMeta(step: Step): {
 } {
   if (step === "choose") {
     return {
-      badge: "Bước 1 / 3 · Kiểm tra an toàn trước khi vay",
-      title: "Kiểm tra khoản vay trước khi ký",
-      subtitle:
-        "Tải ảnh chụp hợp đồng, tệp PDF/Word (.docx), dán tin nhắn mời vay hoặc nhập số liệu để biết chi phí thật. Tệp chỉ xử lý trong bộ nhớ, không lưu tệp gốc.",
+      badge: "Bước 1 / 3",
+      title: "Kiểm tra khoản vay",
+      subtitle: "Tải ảnh, PDF/Word hoặc dán tin nhắn để xem lãi thật.",
     };
   }
   if (step === "confirm") {
     return {
-      badge: "Bước 2 / 3 · Đối chiếu con số thực tế",
-      title: "Kiểm tra lại các con số trước khi tính",
-      subtitle:
-        "Bạn đối chiếu kỹ tiền thực nhận về tay và lịch phải đóng với hợp đồng hoặc lời người tư vấn, sửa lại nếu chưa khớp nhé.",
+      badge: "Bước 2 / 3",
+      title: "Xác nhận con số",
+      subtitle: "Đối chiếu tiền thực nhận và lịch trả trước khi tính.",
     };
   }
   return {
-    badge: "Bước 3 / 3 · Chi phí thật & đối chiếu quy định",
-    title: "Kết quả kiểm tra khoản vay",
-    subtitle:
-      "Bạn xem kỹ chi phí thực tế quy năm, kịch bản gia hạn và các dấu hiệu dưới đây trước khi đưa ra quyết định nhé.",
+    badge: "Bước 3 / 3",
+    title: "Kết quả kiểm tra",
+    subtitle: "Chi phí thực tế và các dấu hiệu cần lưu ý.",
   };
 }
 
@@ -138,73 +135,17 @@ function LoanStepProgress({ currentStep }: { currentStep: Step }) {
   const activeIdx = getStepIndex(currentStep);
 
   return (
-    <nav
-      aria-label="Các bước kiểm tra khoản vay"
-      className="rounded-2xl border border-teal-200/80 bg-white p-4 shadow-sm"
-    >
-      <div aria-hidden="true" className="grid grid-cols-3 gap-2">
-        {STEP_ITEMS.map((item, idx) => {
-          const isReached = idx <= activeIdx;
-          return (
-            <span
-              key={item.id}
-              className={`h-2 rounded-full transition-colors ${
-                isReached ? "bg-teal-700" : "bg-slate-200"
-              }`}
-            />
-          );
-        })}
-      </div>
-
-      <ol className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {STEP_ITEMS.map((item, idx) => {
-          const isCurrent = idx === activeIdx;
-          const isDone = idx < activeIdx;
-
-          return (
-            <li
-              key={item.id}
-              aria-current={isCurrent ? "step" : undefined}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-base transition ${
-                isCurrent
-                  ? "border border-teal-300 bg-teal-50/90 font-bold text-teal-950"
-                  : isDone
-                    ? "border border-emerald-200 bg-emerald-50/60 font-semibold text-emerald-950"
-                    : "border border-transparent bg-slate-50/80 font-medium text-slate-600"
-              }`}
-            >
-              <span
-                aria-hidden="true"
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-base font-bold ${
-                  isCurrent
-                    ? "bg-teal-700 text-white"
-                    : isDone
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-700"
-                }`}
-              >
-                {isDone ? (
-                  <svg
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.25 7.3a1 1 0 0 1-1.42 0l-3.75-3.775a1 1 0 1 1 1.42-1.41l3.04 3.06 6.54-6.585a1 1 0 0 1 1.414-.004Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                ) : (
-                  idx + 1
-                )}
-              </span>
-              <span className="leading-snug">{item.label}</span>
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
+    <div aria-label="Tiến độ kiểm tra" className="grid grid-cols-3 gap-1.5">
+      {STEP_ITEMS.map((item, idx) => (
+        <div
+          key={item.id}
+          aria-current={idx === activeIdx ? "step" : undefined}
+          className={`h-1.5 rounded-full transition-colors ${
+            idx <= activeIdx ? "bg-teal-700" : "bg-slate-200"
+          }`}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -751,37 +692,9 @@ export default function LoanPage() {
                       <span>Chọn ảnh, PDF hoặc file Word (.docx)</span>
                     </button>
 
-                    <div className="flex flex-wrap gap-2 text-sm font-medium text-teal-950">
-                      <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1">
-                        Ảnh chụp (tự thu gọn ≤1600px)
-                      </span>
-                      <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1">
-                        PDF (tối đa 10 trang)
-                      </span>
-                      <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1">
-                        Word (.docx)
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-slate-700">
-                        Tối đa 4 MB · Không lưu tệp gốc
-                      </span>
-                    </div>
-
-                    <div className="rounded-xl border border-teal-100 bg-teal-50/60 p-3.5 text-base leading-relaxed text-slate-700">
-                      <p className="font-semibold text-teal-950">
-                        Lưu ý để đọc chuẩn ngay lần đầu:
-                      </p>
-                      <ul className="mt-1.5 list-disc space-y-1 pl-5">
-                        <li>
-                          Ưu tiên tải tệp <strong>PDF có chữ chọn được</strong> hoặc{" "}
-                          <strong>Word (.docx)</strong>; tệp Word cũ (.doc) hãy lưu sang{" "}
-                          <strong>.docx</strong> hoặc <strong>.pdf</strong> trước khi tải.
-                        </li>
-                        <li>
-                          Nếu chụp ảnh màn hình, nhớ chụp rõ <strong>tiền thực nhận</strong>,{" "}
-                          <strong>tổng phải trả</strong> và che số CCCD cá nhân.
-                        </li>
-                      </ul>
-                    </div>
+                    <p className="text-center text-sm text-slate-500">
+                      Hỗ trợ ảnh chụp, PDF (≤10 trang), Word (.docx) · Tối đa 4 MB · Không lưu tệp gốc
+                    </p>
                   </div>
                 ) : (
                   <div
