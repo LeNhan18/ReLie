@@ -5,6 +5,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from antam.ai.errors import AIUnavailable
+from antam.ai.extraction_budget import TIMEOUT_MESSAGE, check_deadline, remaining_timeout
 from antam.config import settings
 
 
@@ -41,8 +42,9 @@ def completion_json(system: str, text: str, max_tokens: int, *, endpoint: str,
         method="POST",
     )
     try:
-        with build_opener(_NoRedirect()).open(request, timeout=timeout) as response:
+        with build_opener(_NoRedirect()).open(request, timeout=remaining_timeout(timeout)) as response:
             raw = response.read(500_001)
+        check_deadline()
         if len(raw) > 500_000:
             raise AIUnavailable("Phản hồi LLM quá lớn.")
         data = json.loads(raw)
@@ -64,5 +66,11 @@ def completion_json(system: str, text: str, max_tokens: int, *, endpoint: str,
         limited = exc.code == 429
         exc.close()
         raise AIUnavailable("LLM đang hết hạn mức; thử lại sau." if limited else "Chưa kết nối được LLM.") from None
-    except (URLError, OSError, TimeoutError, ValueError, KeyError, IndexError, TypeError):
+    except TimeoutError:
+        raise AIUnavailable(TIMEOUT_MESSAGE) from None
+    except URLError as exc:
+        if isinstance(exc.reason, TimeoutError):
+            raise AIUnavailable(TIMEOUT_MESSAGE) from None
+        raise AIUnavailable("Chưa kết nối được AI đọc điều khoản; vui lòng thử lại sau.") from None
+    except (OSError, ValueError, KeyError, IndexError, TypeError):
         raise AIUnavailable("LLM chưa trả được kết quả hợp lệ; vui lòng thử lại.") from None

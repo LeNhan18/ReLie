@@ -4,7 +4,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from antam.ai.errors import AIUnavailable, OCRInputError
-from antam.ai.extract import InvalidSampleId, SampleNotFound, extract_terms
+from antam.ai.extract import InvalidSampleId, SampleNotFound
+from antam.ai.extraction_budget import bounded_extract_terms as extract_terms
 from antam.schemas.loan import Assessment, ConfirmedLoan
 from antam.services.assess import assess
 from antam.tools.calc_true_cost import CashFlowError
